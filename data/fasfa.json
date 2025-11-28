@@ -1,0 +1,507 @@
+[
+  [
+    {
+      "id": "81f04e7b3a414c4988dcefb09eaf954b",
+      "answer": [
+        "D"
+      ],
+      "index": 1
+    },
+    {
+      "id": "955c73f6bc0a4d6ca7aa2e7c29185aa5",
+      "answer": [
+        "B"
+      ],
+      "index": 2
+    },
+    {
+      "id": "ef161766a286427d8e4320d2ccc065a1",
+      "answer": [
+        "B"
+      ],
+      "index": 3
+    },
+    {
+      "id": "58ca30c1955a457fb2022bca73989ae3",
+      "answer": [
+        "D"
+      ],
+      "index": 4
+    },
+    {
+      "id": "6158f50f1b3747a588dc9e8ca4e2a2ae",
+      "answer": [
+        "D"
+      ],
+      "index": 5
+    },
+    {
+      "id": "e14a4328871f48ce96b4b11b60972293",
+      "answer": [
+        "D"
+      ],
+      "index": 6
+    },
+    {
+      "id": "84edc712b4bc47dbaf33530b2943c349",
+      "answer": [
+        "C"
+      ],
+      "index": 7
+    },
+    {
+      "id": "1afd44150c3c4d9cab3b75c5c301648d",
+      "answer": [
+        "C"
+      ],
+      "index": 8
+    },
+    {
+      "id": "5814b7f8ccf347338ea99b87e4826d83",
+      "answer": [
+        "D"
+      ],
+      "index": 9
+    },
+    {
+      "id": "43d5286a0ef3454999d156bfbea66a5e",
+      "answer": [
+        "A"
+      ],
+      "index": 10
+    },
+    {
+      "id": "a2023d5b8df04863a1b7bc9db75d70da",
+      "answer": [
+        "C"
+      ],
+      "index": 11
+    },
+    {
+      "id": "2ec40b33494443c984f81f7564ef8952",
+      "answer": [
+        "B"
+      ],
+      "index": 12
+    },
+    {
+      "id": "41975a029e154dfa9af160ee6f40f31a",
+      "answer": [
+        "D"
+      ],
+      "index": 13
+    },
+    {
+      "id": "d4ea276a837d442bbd3e1741336e2735",
+      "answer": [
+        "B"
+      ],
+      "index": 14
+    },
+    {
+      "id": "eda0320ab4be458e8f1c68f5d064abab",
+      "answer": [
+        "C"
+      ],
+      "index": 15
+    },
+    {
+      "id": "2bcaa524943b4f2cb448a78f8ded39dd",
+      "answer": [
+        "A"
+      ],
+      "index": 16
+    },
+    {
+      "id": "47b8b22ac54b4581b464d258ba96e594",
+      "answer": [
+        "D"
+      ],
+      "index": 17
+    },
+    {
+      "id": "19c5183b9338424d9f7a12bca6e11835",
+      "answer": [
+        "B"
+      ],
+      "index": 18
+    },
+    {
+      "id": "e37f2b0e71504b47956b8e4428e41cfa",
+      "answer": [
+        "A"
+      ],
+      "index": 19
+    },
+    {
+      "id": "8e924101d8a742dc97dad151bd2d9f77",
+      "answer": [
+        "A"
+      ],
+      "index": 20
+    },
+    {
+      "id": "018ea079ae50440c81207aac5646af56",
+      "answer": [
+        "C"
+      ],
+      "index": 21
+    },
+    {
+      "id": "8a7e410665c34c8194ad9432f0ec2859",
+      "answer": [
+        "A"
+      ],
+      "index": 22
+    },
+    {
+      "id": "e91f59bec4a2402aaac9d4373ce74b86",
+      "answer": [
+        "A"
+      ],
+      "index": 23
+    },
+    {
+      "id": "621dc1c17b074750b7ec96c6fd7b2ef9",
+      "answer": [
+        "A"
+      ],
+      "index": 24
+    },
+    {
+      "id": "c55158c3007f4feb892fb3866d57ed08",
+      "answer": [
+        "A"
+      ],
+      "index": 25
+    },
+    {
+      "id": "01a67e0f6aac408283aefe6959bc9032",
+      "answer": [
+        "A"
+      ],
+      "index": 26
+    },
+    {
+      "id": "00f7b2483f814570a3c382af3351822e",
+      "answer": [
+        "A"
+      ],
+      "index": 27
+    },
+    {
+      "id": "19310fd5a9bb4129ab9fd341ad4c2adf",
+      "answer": [
+        "D"
+      ],
+      "index": 28
+    },
+    {
+      "id": "c6d9605ab026429f85e7a80387ab8b2b",
+      "answer": [
+        "D"
+      ],
+      "index": 29
+    },
+    {
+      "id": "361f1a676a90480a87d810325dfeb4da",
+      "answer": [
+        "D"
+      ],
+      "index": 30
+    },
+    {
+      "id": "3e88703e5c284af9bd3dc427b18abb59",
+      "answer": [
+        "B"
+      ],
+      "index": 31
+    },
+    {
+      "id": "165dfc6b0d8445a8816a2bec95fe8db0",
+      "answer": [
+        "D"
+      ],
+      "index": 32
+    },
+    {
+      "id": "19ca50b60e9744948c236bc96eb7a014",
+      "answer": [
+        "B"
+      ],
+      "index": 33
+    },
+    {
+      "id": "08b9a4499a024ff8a5ba7d831916076c",
+      "answer": [
+        "B"
+      ],
+      "index": 34
+    },
+    {
+      "id": "d50e0bcc3303438288f6244ca1484f00",
+      "answer": [
+        "C"
+      ],
+      "index": 35
+    },
+    {
+      "id": "8f996c4795d44aee92c44a438d7d2e2e",
+      "answer": [
+        "D"
+      ],
+      "index": 36
+    }
+  ],
+  [
+    {
+      "id": "b95efb9433944f7e9b1901e4607fbf93",
+      "answer": "Spring Data"
+    },
+    {
+      "id": "760960c168a6408e9cf14e604e33ffff",
+      "answer": "索引"
+    },
+    {
+      "id": "39a51ecfd6a74454aca1a0ac7bb7487f",
+      "answer": "@CacheConfig"
+    },
+    {
+      "id": "e78f759a0ee84c71bd4497b38183e148",
+      "answer": "IService"
+    },
+    {
+      "id": "327479abf8f347c7af4392b361848ecf",
+      "answer": "@EnableCaching"
+    },
+    {
+      "id": "1388e611ef5c42928859c6b4a8c6433c",
+      "answer": "JDK"
+    },
+    {
+      "id": "c7811b65236946e4b5b0fca29add8925",
+      "answer": "value"
+    },
+    {
+      "id": "533f98871c6c42ca9d2cf3b52e8aa9f1",
+      "answer": "ConcurrentHashMap"
+    },
+    {
+      "id": "e3b5934fdd0348ff9d7edf12db52f4e6",
+      "answer": "unless"
+    },
+    {
+      "id": "579ab86a01354e668ab7f7757ba90dfe",
+      "answer": "Hibernate"
+    },
+    {
+      "id": "91825106daf849ed8531624d9f31e4f0",
+      "answer": "true"
+    },
+    {
+      "id": "76186345887441dca9804bef0bdf6bd1",
+      "answer": "前缀"
+    },
+    {
+      "id": "04da37fa92b942fa9c38da4c9b0a22ce",
+      "answer": "Wrapper"
+    },
+    {
+      "id": "9673c6eb7b5a4e6bb59331d92b444265",
+      "answer": "@MapperScan"
+    },
+    {
+      "id": "8e998f206c4341fd832e022415a8bc75",
+      "answer": "6379"
+    },
+    {
+      "id": "e02e7e2eeb3845499d0b9d74607f3b69",
+      "answer": "Jedis"
+    },
+    {
+      "id": "cfb4c3cd52b54d29835b465d8773ddff",
+      "answer": ":参数名"
+    },
+    {
+      "id": "29acdac0151e419a95aa5165ef84db86",
+      "answer": "启动"
+    },
+    {
+      "id": "1c9bb1bd03924568a8b029401ae9abce",
+      "answer": "spring.cache.ehcache.config"
+    }
+  ],
+  [
+    {
+      "id": "b4f50377c1664dd4aefc73bee746d12d",
+      "answer": "错误"
+    },
+    {
+      "id": "497db9a2a68942cf903876126f7e2041",
+      "answer": "正确"
+    },
+    {
+      "id": "e4598d28d0844b4c8d74bf6ba2587e40",
+      "answer": "错误"
+    },
+    {
+      "id": "b925309b07324784a7e61523dd459c38",
+      "answer": "错误"
+    },
+    {
+      "id": "a99be7c1b0f84f87bb6a1bdc143f577c",
+      "answer": "正确"
+    },
+    {
+      "id": "c004067f9a9542c3a038676cba142453",
+      "answer": "正确"
+    },
+    {
+      "id": "957ad38b3466455b8649f33061d20256",
+      "answer": "正确"
+    },
+    {
+      "id": "d7921e9a4d334853be3fa51fe571cd56",
+      "answer": "正确"
+    },
+    {
+      "id": "ada05a185490494ab3668b9e018a3af3",
+      "answer": "错误"
+    },
+    {
+      "id": "83059e82ef4c47caac0a49257d558efb",
+      "answer": "错误"
+    },
+    {
+      "id": "676e8d99d0d74d4f987abe09782e133a",
+      "answer": "正确"
+    },
+    {
+      "id": "7beabbb8fb25402c829784d75df508b1",
+      "answer": "正确"
+    },
+    {
+      "id": "636f4c1b085e4a5ba382fc0769cfab75",
+      "answer": "正确"
+    },
+    {
+      "id": "7e71f19181aa4fb7b04a1aa7e5e786d7",
+      "answer": "正确"
+    },
+    {
+      "id": "7a268acdee1b4c56988e333c612558e1",
+      "answer": "正确"
+    },
+    {
+      "id": "81ee0833fc524956adecef376de8f8e5",
+      "answer": "正确"
+    },
+    {
+      "id": "227e5c3a59f94059a1c6264c8a4cedf3",
+      "answer": "正确"
+    },
+    {
+      "id": "170ceb548072458b96301ffb78e5a612",
+      "answer": "正确"
+    },
+    {
+      "id": "8a8b8e7d93ee485eacec48313bfdaf57",
+      "answer": "正确"
+    },
+    {
+      "id": "1f24d5ad39184dff81da3e7cc9f9cafa",
+      "answer": "正确"
+    },
+    {
+      "id": "bcc95dd54fde4e7f8c75c2182396ca74",
+      "answer": "错误"
+    },
+    {
+      "id": "80a3ea9ee3e841b1915af9a52ec3f755",
+      "answer": "正确"
+    },
+    {
+      "id": "9eb9ae782a854b21b86a5fdfaded0750",
+      "answer": "正确"
+    },
+    {
+      "id": "d958cef8bdaa4078bb822514cc107595",
+      "answer": "正确"
+    },
+    {
+      "id": "779e13cdd38a43329ea3955495b53e4d",
+      "answer": "正确"
+    },
+    {
+      "id": "618f0ec863644f3ead4dbbd984078b3e",
+      "answer": "正确"
+    },
+    {
+      "id": "fbafca80318d48ed8616310bc420f600",
+      "answer": "正确"
+    }
+  ],
+  [
+    {
+      "id": "710ca576c74a442fac21168f5310e190",
+      "answer": "1. 读写速度快：Redis数据存储在内存中，读写效率高\n2. 支持丰富的数据类型：支持String、List、Set、SortedSet、Hash等\n3. 支持数据持久化：可以将内存数据保存到磁盘，重启后重新加载\n4. 支持事务：所有操作都是原子性的"
+    },
+    {
+      "id": "2496ba08faaa4ed480511aff2c2c5468",
+      "answer": "1. @Cacheable：用于查询方法，优先从缓存中读取，不存在时执行方法并缓存结果\n2. @CachePut：用于更新方法，总是执行方法并用结果更新缓存\n3. @CacheEvict：用于删除方法，清除指定的缓存\n4. @Caching：用于组合多个缓存操作"
+    },
+    {
+      "id": "f9aace341e0045e1810832a226b9ec6e",
+      "answer": "1. 分层缓存必须组合使用，不能单独使用\n2. 各层缓存的配置要协调一致\n3. 数据在不同层级间的传递要保证一致性\n4. 需要合理设置各层缓存的大小和淘汰策略"
+    },
+    {
+      "id": "60f8b228cab047da807347a96ebd22d7",
+      "answer": "1. 通过Repository接口定义数据访问操作\n2. Spring Data根据方法名自动生成查询语句\n3. 使用@Query注解可以自定义JPQL或SQL查询\n4. 底层通过Hibernate实现ORM映射和数据库操作\n5. 提供事务管理和连接池等基础设施支持"
+    }
+  ],
+  [
+    {
+      "id": "e93291fccf70402db262b43f219bc296",
+      "answer": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "id": "3d3a145cec574b2484b69ccc5bcabd25",
+      "answer": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "id": "0f689cad425846c3ae97095450273809",
+      "answer": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "id": "24f5d12737124bf599419378b96e7b49",
+      "answer": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "id": "63f2092054974e9c83cc58436708c463",
+      "answer": [
+        "A",
+        "C"
+      ]
+    }
+  ]
+]

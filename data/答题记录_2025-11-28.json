@@ -1,0 +1,912 @@
+[
+  {
+    "id": "5ae2df26223742f083202749dcb7769a",
+    "questionId": "5ae2df26223742f083202749dcb7769a",
+    "type": "0",
+    "questionContent": "下列选项中，对于创建Maven项目时，界面中Group和Artifact的作用说法错误的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324391661,
+    "status": "已答"
+  },
+  {
+    "id": "7738be01df8d4fcfa58bc36e8b02722b",
+    "questionId": "7738be01df8d4fcfa58bc36e8b02722b",
+    "type": "0",
+    "questionContent": "下列选项中，对于@Value注解和@ConfigurationProperties注解的描述错误的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324393468,
+    "status": "已答"
+  },
+  {
+    "id": "9d66919f1234476a9b398cd5ebe47ff3",
+    "questionId": "9d66919f1234476a9b398cd5ebe47ff3",
+    "type": "0",
+    "questionContent": "下列选项中，对于Spring Boot项目的环境要求描述错误的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324395004,
+    "status": "已答"
+  },
+  {
+    "id": "d3ea216cc7094a259e36c78353906807",
+    "questionId": "d3ea216cc7094a259e36c78353906807",
+    "type": "0",
+    "questionContent": "下列选项中，对于将Spring Boot项目打包为可执行的JAR包描述错误的是（）。",
+    "answer": "D",
+    "solution": "",
+    "timestamp": 1764324396551,
+    "status": "已答"
+  },
+  {
+    "id": "6710ae59baee4242a7488b3bdd3c1708",
+    "questionId": "6710ae59baee4242a7488b3bdd3c1708",
+    "type": "0",
+    "questionContent": "下列选项中，IDEA中将Spring Boot打包的命令和插件说法错误的是（）。",
+    "answer": "A",
+    "solution": "",
+    "timestamp": 1764324398289,
+    "status": "已答"
+  },
+  {
+    "id": "6e9aa6480d2f4249b0a8e226bb3fb572",
+    "questionId": "6e9aa6480d2f4249b0a8e226bb3fb572",
+    "type": "0",
+    "questionContent": "下列选项中，关于Spring Boot概述错误的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324399775,
+    "status": "已答"
+  },
+  {
+    "id": "7bcaed1cec2f4769a89889f8b10a7dfc",
+    "questionId": "7bcaed1cec2f4769a89889f8b10a7dfc",
+    "type": "0",
+    "questionContent": "下列选项中，对于Spring Initializr，以及使用Spring Initializr方式构建Spring Boot项目的说法错误的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324401330,
+    "status": "已答"
+  },
+  {
+    "id": "7573f4cc0b5543a181881b3fd64d6e14",
+    "questionId": "7573f4cc0b5543a181881b3fd64d6e14",
+    "type": "0",
+    "questionContent": "下列选项中，关于Spring Boot项目以War包方式进行打包部署的说法错误的是（）。",
+    "answer": "B",
+    "solution": "",
+    "timestamp": 1764324402743,
+    "status": "已答"
+  },
+  {
+    "id": "11d398655b6e43b1bd9d1c961aa9f299",
+    "questionId": "11d398655b6e43b1bd9d1c961aa9f299",
+    "type": "0",
+    "questionContent": "下列选项中，在Spring Boot配置文件中用于激活指定Profile的属性是（）。",
+    "answer": "B",
+    "solution": "",
+    "timestamp": 1764324404410,
+    "status": "已答"
+  },
+  {
+    "id": "f63edd5cb8074abaa46e04a3b89f7865",
+    "questionId": "f63edd5cb8074abaa46e04a3b89f7865",
+    "type": "0",
+    "questionContent": "下列选项中，对于application.yml中配置属性的规则描述错误的是（）。",
+    "answer": "B",
+    "solution": "",
+    "timestamp": 1764324406225,
+    "status": "已答"
+  },
+  {
+    "id": "75a110cda87d47a7a39b5be5159ba6cf",
+    "questionId": "75a110cda87d47a7a39b5be5159ba6cf",
+    "type": "0",
+    "questionContent": "下列选项中，关于在application.properties文件中配置属性描述错误的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324407806,
+    "status": "已答"
+  },
+  {
+    "id": "3b594819f2bd41d5bcf3090aff833c39",
+    "questionId": "3b594819f2bd41d5bcf3090aff833c39",
+    "type": "0",
+    "questionContent": "下列选项中，对Spring Boot中引入配置文件描述错误的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324409324,
+    "status": "已答"
+  },
+  {
+    "id": "58981160dbb649c1bd1ae614396b6bcf",
+    "questionId": "58981160dbb649c1bd1ae614396b6bcf",
+    "type": "0",
+    "questionContent": "下列选项中，对于Spring Boot自动装配时对应注解的作用描述错误的是（）。",
+    "answer": "B",
+    "solution": "",
+    "timestamp": 1764324410630,
+    "status": "已答"
+  },
+  {
+    "id": "5b28d3737a31464b8198a6614a325647",
+    "questionId": "5b28d3737a31464b8198a6614a325647",
+    "type": "0",
+    "questionContent": "下列选项中，在application.yml文件中配置属性描述错误的是（）。",
+    "answer": "B",
+    "solution": "",
+    "timestamp": 1764324412064,
+    "status": "已答"
+  },
+  {
+    "id": "d19e4ace86c144c5bb66d0d4bd57d133",
+    "questionId": "d19e4ace86c144c5bb66d0d4bd57d133",
+    "type": "0",
+    "questionContent": "下列选项中，关于在Spring Boot的配置文件中配置Profile的描述错误的是（）。",
+    "answer": "D",
+    "solution": "",
+    "timestamp": 1764324413628,
+    "status": "已答"
+  },
+  {
+    "id": "19bd570f5ac243b2aa741ec6b60b3339",
+    "questionId": "19bd570f5ac243b2aa741ec6b60b3339",
+    "type": "0",
+    "questionContent": "下列选项中，属于Spring Boot项目启动类上标注的注解的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324414971,
+    "status": "已答"
+  },
+  {
+    "id": "85b948b650da4108b66be2b3d564b855",
+    "questionId": "85b948b650da4108b66be2b3d564b855",
+    "type": "0",
+    "questionContent": "下列选项中，对于SERVLET类型的Spring Boot项目描述正确的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324416733,
+    "status": "已答"
+  },
+  {
+    "id": "b437835e2ffb435782b908db5f32410b",
+    "questionId": "b437835e2ffb435782b908db5f32410b",
+    "type": "0",
+    "questionContent": "下列选项中，不属于@SpringBootApplication注解内部包含的注解的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324418504,
+    "status": "已答"
+  },
+  {
+    "id": "bcfb0a473a1e4bdc9e69c93bb27c126e",
+    "questionId": "bcfb0a473a1e4bdc9e69c93bb27c126e",
+    "type": "0",
+    "questionContent": "下列选项中，对常见的Spring Boot应用程序启动器描述错误的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324420437,
+    "status": "已答"
+  },
+  {
+    "id": "fd72e98637924408ab81c8611630f2a1",
+    "questionId": "fd72e98637924408ab81c8611630f2a1",
+    "type": "0",
+    "questionContent": "下列选项中，对@Value注解的描述错误的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324422293,
+    "status": "已答"
+  },
+  {
+    "id": "fba583391bd140f1924a4d20487541ff",
+    "questionId": "fba583391bd140f1924a4d20487541ff",
+    "type": "0",
+    "questionContent": "下列选项中，对于@ConfigurationProperties注解的描述错误的是（）。",
+    "answer": "D",
+    "solution": "",
+    "timestamp": 1764324424445,
+    "status": "已答"
+  },
+  {
+    "id": "be4949c486804c0aa2310beb85ecf370",
+    "questionId": "be4949c486804c0aa2310beb85ecf370",
+    "type": "0",
+    "questionContent": "下列选项中，关于Spring Boot的起步依赖说法错误的是（）。",
+    "answer": "B",
+    "solution": "",
+    "timestamp": 1764324426299,
+    "status": "已答"
+  },
+  {
+    "id": "722078f796d749afa61b8bbbd6253d12",
+    "questionId": "722078f796d749afa61b8bbbd6253d12",
+    "type": "0",
+    "questionContent": "下列选项中，对于@Value注解的描述正确的是（）。",
+    "answer": "C",
+    "solution": "",
+    "timestamp": 1764324428382,
+    "status": "已答"
+  },
+  {
+    "id": "3ccf42e077e74739b1cd9a4d5c6ea88e",
+    "questionId": "3ccf42e077e74739b1cd9a4d5c6ea88e",
+    "type": "0",
+    "questionContent": "下列选项中，不属于Spring Boot项目的类型的是（）。",
+    "answer": "A",
+    "solution": "",
+    "timestamp": 1764324430562,
+    "status": "已答"
+  },
+  {
+    "id": "655f83b2a2c24bb990cf3184f4e3b8f2",
+    "questionId": "655f83b2a2c24bb990cf3184f4e3b8f2",
+    "type": "0",
+    "questionContent": "下列选项中，对于@SpringBootTest注解webEnvironment属性的值描述错误的是（）。",
+    "answer": "B",
+    "solution": "",
+    "timestamp": 1764324432633,
+    "status": "已答"
+  },
+  {
+    "id": "79748e7ede014226a34f6eb5d50a1e09",
+    "questionId": "79748e7ede014226a34f6eb5d50a1e09",
+    "type": "1",
+    "questionContent": "下列选项中，对于@ConfigurationProperties注解的描述正确的有（）。",
+    "answer": "A,B,D",
+    "solution": "",
+    "timestamp": 1764324437298,
+    "status": "已答"
+  },
+  {
+    "id": "4663578c69c1463087ad832a425608ad",
+    "questionId": "4663578c69c1463087ad832a425608ad",
+    "type": "1",
+    "questionContent": "下列选择中，属于Spring Boot特性的有（）。",
+    "answer": "A,B,C,D",
+    "solution": "",
+    "timestamp": 1764324441142,
+    "status": "已答"
+  },
+  {
+    "id": "bbffae7385b04dbd93479ce044ddba91",
+    "questionId": "bbffae7385b04dbd93479ce044ddba91",
+    "type": "1",
+    "questionContent": "下列选项中，对于@Profile注解描述正确的有（）。",
+    "answer": "A,B,C,D",
+    "solution": "",
+    "timestamp": 1764324443479,
+    "status": "已答"
+  },
+  {
+    "id": "7f0311789250478db2c1ab81a552fb5b",
+    "questionId": "7f0311789250478db2c1ab81a552fb5b",
+    "type": "1",
+    "questionContent": "下列选项中，对于将Spring Boot项目打包为WAR包描述正确的有（）。",
+    "answer": "A,B,D",
+    "solution": "",
+    "timestamp": 1764324446568,
+    "status": "已答"
+  },
+  {
+    "id": "95839b74391445b5b748346bc470b3bd",
+    "questionId": "95839b74391445b5b748346bc470b3bd",
+    "type": "1",
+    "questionContent": "下列选项中，对于application-{profile}.yml格式的Spring Boot配置文件说明正确的有（）。",
+    "answer": "A,D",
+    "solution": "",
+    "timestamp": 1764324448548,
+    "status": "已答"
+  },
+  {
+    "id": "ccfc44ac7c9b41f39796b09c8c42dae3",
+    "questionId": "ccfc44ac7c9b41f39796b09c8c42dae3",
+    "type": "1",
+    "questionContent": "下列选项中，关于Spring Boot概述正确的有（）。",
+    "answer": "A,B,D",
+    "solution": "",
+    "timestamp": 1764324450620,
+    "status": "已答"
+  },
+  {
+    "id": "085ffce0350b4b68a37c0e374fba1680",
+    "questionId": "085ffce0350b4b68a37c0e374fba1680",
+    "type": "1",
+    "questionContent": "项目的resource文件夹的application.yml配置文件中包含如下内容，\nconsumer:\n  username: lisi\n  age: 23\n  hobby: sing,read,sleep\n  subject: 100,150\n下列选项中，在Consumer类的属性上使用@Value注解注入配置文件中的属性正确的有（）。",
+    "answer": "A,B,C",
+    "solution": "",
+    "timestamp": 1764324452687,
+    "status": "已答"
+  },
+  {
+    "id": "3a1f9035b60b424abc94bf0588809325",
+    "questionId": "3a1f9035b60b424abc94bf0588809325",
+    "type": "1",
+    "questionContent": "下列选择中，对于Spring Boot项目中的文件和文件夹的作用描述正确的有（）。",
+    "answer": "A,B,C,D",
+    "solution": "",
+    "timestamp": 1764324454751,
+    "status": "已答"
+  },
+  {
+    "id": "605128e88be544368753898b92616221",
+    "questionId": "605128e88be544368753898b92616221",
+    "type": "2",
+    "questionContent": "使用Maven方式构建Spring Boot项目必须处于联网状态，否则会创建失败。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324456315,
+    "status": "已答"
+  },
+  {
+    "id": "5b578ee9ee474ecb82f7ff47d726984a",
+    "questionId": "5b578ee9ee474ecb82f7ff47d726984a",
+    "type": "2",
+    "questionContent": "使用Spring Initializr搭建的Spring Boot项目会默认生成项目启动类。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324457943,
+    "status": "已答"
+  },
+  {
+    "id": "d41bde51222b4496a410529eb293e108",
+    "questionId": "d41bde51222b4496a410529eb293e108",
+    "type": "2",
+    "questionContent": "使用Environment对象获取配置文件的数据时，不需要再提供其他实体类。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324459373,
+    "status": "已答"
+  },
+  {
+    "id": "8af2780e31ba4d30912408053e8a2aba",
+    "questionId": "8af2780e31ba4d30912408053e8a2aba",
+    "type": "2",
+    "questionContent": "@Value注解支持SpEL表达式进行Bean的属性值注入。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324460897,
+    "status": "已答"
+  },
+  {
+    "id": "9505043d957a4f47bbdf9c7a1cd4accd",
+    "questionId": "9505043d957a4f47bbdf9c7a1cd4accd",
+    "type": "2",
+    "questionContent": "SpringApplication类中有多个重载的run()方法。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324462558,
+    "status": "已答"
+  },
+  {
+    "id": "2e11596a6aca40c59ce4ad505140a431",
+    "questionId": "2e11596a6aca40c59ce4ad505140a431",
+    "type": "2",
+    "questionContent": "Spring Boot是替代Spring框架的解决方案。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324464298,
+    "status": "已答"
+  },
+  {
+    "id": "3bda375f41be4607b0010ee16999a5a5",
+    "questionId": "3bda375f41be4607b0010ee16999a5a5",
+    "type": "2",
+    "questionContent": "@ConfigurationProperties注解可以将配置文件中的一组配置数据同时绑定到Bean中。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324465725,
+    "status": "已答"
+  },
+  {
+    "id": "0dd807c9ebc842b18da0c6d4691b8346",
+    "questionId": "0dd807c9ebc842b18da0c6d4691b8346",
+    "type": "2",
+    "questionContent": "开发人员只需关注Spring Boot的版本，不需要关心下游依赖的版本信息。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324467148,
+    "status": "已答"
+  },
+  {
+    "id": "b81ae77b091d40a68d991e1d4ec4a52d",
+    "questionId": "b81ae77b091d40a68d991e1d4ec4a52d",
+    "type": "2",
+    "questionContent": "application.yml可以在 Spring Boot启动时被自动读取。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324468900,
+    "status": "已答"
+  },
+  {
+    "id": "af5dad1976f549709ce21ba52a6695bd",
+    "questionId": "af5dad1976f549709ce21ba52a6695bd",
+    "type": "2",
+    "questionContent": "Spring Boot项目启动后会自动产生一个Spring容器对象。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324471679,
+    "status": "已答"
+  },
+  {
+    "id": "72b1a20e7a894ad3a6501a0fdb2b49f7",
+    "questionId": "72b1a20e7a894ad3a6501a0fdb2b49f7",
+    "type": "2",
+    "questionContent": "在Spring Boot中可以将Profile配置在多个文件中。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324473448,
+    "status": "已答"
+  },
+  {
+    "id": "6c722de4c42343ceb29c205f170780dd",
+    "questionId": "6c722de4c42343ceb29c205f170780dd",
+    "type": "2",
+    "questionContent": "Spring Boot官方针对所有场景开发的技术框架都提供了启动器。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324475778,
+    "status": "已答"
+  },
+  {
+    "id": "d6afd3de1ae345cc9d1689b6f174e482",
+    "questionId": "d6afd3de1ae345cc9d1689b6f174e482",
+    "type": "2",
+    "questionContent": "Spring Boot在多文件中配置Profile时，不需要在Spring Boot全局配置文件中激活指定的Profile，会自动激活所有的Profile。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324477320,
+    "status": "已答"
+  },
+  {
+    "id": "e806c82777da4a048327828e85965bee",
+    "questionId": "e806c82777da4a048327828e85965bee",
+    "type": "2",
+    "questionContent": "Spring Boot项目不需要打成WAR包再部署到Web容器。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324479273,
+    "status": "已答"
+  },
+  {
+    "id": "d6f8114b240e4e9a91bb825b7c5dd936",
+    "questionId": "d6f8114b240e4e9a91bb825b7c5dd936",
+    "type": "2",
+    "questionContent": "使用@ImportResource注解引入XML配置文件时，需要指定引入XML配置文件的路径和名称。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324481007,
+    "status": "已答"
+  },
+  {
+    "id": "7ec77b65818d4bb8adef2a24ab0945b2",
+    "questionId": "7ec77b65818d4bb8adef2a24ab0945b2",
+    "type": "2",
+    "questionContent": "默认情况下，application.properties文件中配置的字符串必须使用单引号或双引号进行修饰。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324482599,
+    "status": "已答"
+  },
+  {
+    "id": "3015f31cdade4e90a4ca3f10cfe9eae5",
+    "questionId": "3015f31cdade4e90a4ca3f10cfe9eae5",
+    "type": "2",
+    "questionContent": "热部署可以不用重启服务，服务器会自己悄悄的把更新后的程序给重新加载一遍。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324484240,
+    "status": "已答"
+  },
+  {
+    "id": "4f709f5c639f467c9db1e42fc31d0406",
+    "questionId": "4f709f5c639f467c9db1e42fc31d0406",
+    "type": "2",
+    "questionContent": "使用Maven搭建的Spring Boot项目会默认生成项目启动类。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324485961,
+    "status": "已答"
+  },
+  {
+    "id": "f0e6624d6c544d90827581e9df4b6052",
+    "questionId": "f0e6624d6c544d90827581e9df4b6052",
+    "type": "2",
+    "questionContent": "使用@Value注解进行属性值注入时，必须设置属性的setter()方法。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324487776,
+    "status": "已答"
+  },
+  {
+    "id": "e0919b7dbbda45eeb8f15d24a8ec6859",
+    "questionId": "e0919b7dbbda45eeb8f15d24a8ec6859",
+    "type": "2",
+    "questionContent": "@ConfigurationProperties注解进行配置文件属性注入时，不需要设置属性的setter方法。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324489748,
+    "status": "已答"
+  },
+  {
+    "id": "946f8f222800481e849cbbe8cc036dda",
+    "questionId": "946f8f222800481e849cbbe8cc036dda",
+    "type": "2",
+    "questionContent": "Spring Boot框架和Spring框架一样，整合第三方框架时都需要手动配置各种XML配置文件。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324491526,
+    "status": "已答"
+  },
+  {
+    "id": "98a2c7a3e9b843a09f7573097ef3d285",
+    "questionId": "98a2c7a3e9b843a09f7573097ef3d285",
+    "type": "2",
+    "questionContent": "在Spring Boot项目中加入spring-boot-devtools热部署依赖启动器后重启项目即可生效。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324493145,
+    "status": "已答"
+  },
+  {
+    "id": "63b9d2a9137f4dd7a5e2a49c7ec5c48d",
+    "questionId": "63b9d2a9137f4dd7a5e2a49c7ec5c48d",
+    "type": "2",
+    "questionContent": "Spring Boot 2.7.6需要Java 8及以上版本进行支撑。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324495139,
+    "status": "已答"
+  },
+  {
+    "id": "b1a72a690a7d48f6baacf756ddf53825",
+    "questionId": "b1a72a690a7d48f6baacf756ddf53825",
+    "type": "2",
+    "questionContent": "YAML配置文件的行内式写法配置单列集合属性，包含属性值的中括号“[]”可以省略。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324498002,
+    "status": "已答"
+  },
+  {
+    "id": "ea594b4c18e24d42974d8b3e12f43727",
+    "questionId": "ea594b4c18e24d42974d8b3e12f43727",
+    "type": "2",
+    "questionContent": "使用@Bean注解不能自定义组件的名称。",
+    "answer": "错",
+    "solution": "",
+    "timestamp": 1764324499721,
+    "status": "已答"
+  },
+  {
+    "id": "1b3be89f40fa44a9b8a2082d614f1dd1",
+    "questionId": "1b3be89f40fa44a9b8a2082d614f1dd1",
+    "type": "2",
+    "questionContent": "application.properties文件中配置Map时，可以通过“属性名.键”的方式配置，也可以通过“属性名[键]”的方式实现。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324501516,
+    "status": "已答"
+  },
+  {
+    "id": "86537cd20b644a37984b25271cd5790d",
+    "questionId": "86537cd20b644a37984b25271cd5790d",
+    "type": "2",
+    "questionContent": "DEFINED_PORT为webEnvironment属性的默认值。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324503068,
+    "status": "已答"
+  },
+  {
+    "id": "0751cb189e5d4313b4c9c20e5b3892fe",
+    "questionId": "0751cb189e5d4313b4c9c20e5b3892fe",
+    "type": "2",
+    "questionContent": "在IDEA中创建项目时，“Spring Initializr”选项中Server URL为初始化Spring Boot项目时Spring Initializr工具所在的服务器地址。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324504734,
+    "status": "已答"
+  },
+  {
+    "id": "e386c9e4af7843beb2b73ddff85ca809",
+    "questionId": "e386c9e4af7843beb2b73ddff85ca809",
+    "type": "2",
+    "questionContent": "Spring Boot提供了众多起步依赖来降低项目依赖的复杂度。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324506311,
+    "status": "已答"
+  },
+  {
+    "id": "643368c5cecf43a68e20492655265cbc",
+    "questionId": "643368c5cecf43a68e20492655265cbc",
+    "type": "2",
+    "questionContent": "@Profile注解可以指定Bean的生效环境。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324507798,
+    "status": "已答"
+  },
+  {
+    "id": "14c0388c5f8742bda2aa1b689ee318e9",
+    "questionId": "14c0388c5f8742bda2aa1b689ee318e9",
+    "type": "2",
+    "questionContent": "创建SpringApplication实例时会初始化项目启动所需的资源和对象。",
+    "answer": "对",
+    "solution": "",
+    "timestamp": 1764324509185,
+    "status": "已答"
+  },
+  {
+    "id": "4d8ed8fe1d41433cb3f508d5881f7cf6",
+    "questionId": "4d8ed8fe1d41433cb3f508d5881f7cf6",
+    "type": "3",
+    "questionContent": "常被作为SpringBoot项目的父依赖。",
+    "answer": "spring-boot-starter-parent",
+    "solution": "",
+    "timestamp": 1764324511712,
+    "status": "已答"
+  },
+  {
+    "id": "465866ee1b9b40fda3d4e4f5b952917a",
+    "questionId": "465866ee1b9b40fda3d4e4f5b952917a",
+    "type": "3",
+    "questionContent": "@ConfigurationProperties注解的属性可以指定绑定配置文件中属性的前缀。",
+    "answer": "正确",
+    "solution": "",
+    "timestamp": 1764324513490,
+    "status": "已答"
+  },
+  {
+    "id": "2454927633d4411189d4785890d73511",
+    "questionId": "2454927633d4411189d4785890d73511",
+    "type": "3",
+    "questionContent": "Spring Boot中可以使用注解引入XML配置文件。",
+    "answer": "@ImportResource",
+    "solution": "",
+    "timestamp": 1764324515233,
+    "status": "已答"
+  },
+  {
+    "id": "8596e7d388e84e37b447babcd3020af8",
+    "questionId": "8596e7d388e84e37b447babcd3020af8",
+    "type": "3",
+    "questionContent": "Spring Boot框架在开发过程中大量使用的思想来摆脱框架中各种复杂的手动配置。",
+    "answer": "约定优于配置",
+    "solution": "",
+    "timestamp": 1764324517662,
+    "status": "已答"
+  },
+  {
+    "id": "03af6dda0f1c4f979717c40f2c5e48f7",
+    "questionId": "03af6dda0f1c4f979717c40f2c5e48f7",
+    "type": "3",
+    "questionContent": "在Spring Boot项目中引入第三方的启动器时，需要自行配置对应的依赖。",
+    "answer": "错误",
+    "solution": "",
+    "timestamp": 1764324519379,
+    "status": "已答"
+  },
+  {
+    "id": "22917f2faba240be9b3015fc94891ca6",
+    "questionId": "22917f2faba240be9b3015fc94891ca6",
+    "type": "3",
+    "questionContent": "使用Environment对象的方法可以获取封装到Environment对象中封装的配置文件的数据。",
+    "answer": "正确",
+    "solution": "",
+    "timestamp": 1764324521377,
+    "status": "已答"
+  },
+  {
+    "id": "b377628b4a3e4a6bb42eee8bb2e328d4",
+    "questionId": "b377628b4a3e4a6bb42eee8bb2e328d4",
+    "type": "3",
+    "questionContent": "SpringApplication的run()方法中调用了另一个重载的run()方法，被调用的重载run()方法内部执行创建实例和调用run()方法。",
+    "answer": "SpringApplication",
+    "solution": "",
+    "timestamp": 1764324523366,
+    "status": "已答"
+  },
+  {
+    "id": "3c64f5f5a1c448b4a2520e0727a7b09c",
+    "questionId": "3c64f5f5a1c448b4a2520e0727a7b09c",
+    "type": "3",
+    "questionContent": "Pivotal团队基于框架开发了全新的Spring Boot框架。",
+    "answer": "Spring",
+    "solution": "",
+    "timestamp": 1764324525687,
+    "status": "已答"
+  },
+  {
+    "id": "0f6b06b2d14841f0b4328ac0b6026911",
+    "questionId": "0f6b06b2d14841f0b4328ac0b6026911",
+    "type": "3",
+    "questionContent": "Spring Boot提供了用于修饰单元测试用例类。",
+    "answer": "@SpringBootTest",
+    "solution": "",
+    "timestamp": 1764324527486,
+    "status": "已答"
+  },
+  {
+    "id": "9c12f2fe37e44727baa72cfc5f4a71a5",
+    "questionId": "9c12f2fe37e44727baa72cfc5f4a71a5",
+    "type": "3",
+    "questionContent": "可以让Spring Boot对不同的环境提供不同配置的功能。",
+    "answer": "Profile",
+    "solution": "",
+    "timestamp": 1764324529578,
+    "status": "已答"
+  },
+  {
+    "id": "518d4e068efd4cc38a13af59aebdf165",
+    "questionId": "518d4e068efd4cc38a13af59aebdf165",
+    "type": "3",
+    "questionContent": "Spring Boot启动类中调用SpringApplication类的方法来创建Spring容器。",
+    "answer": "run",
+    "solution": "",
+    "timestamp": 1764324531472,
+    "status": "已答"
+  },
+  {
+    "id": "82febb057dc840b58022cfa69888aa98",
+    "questionId": "82febb057dc840b58022cfa69888aa98",
+    "type": "3",
+    "questionContent": "application.properties文件中属性通过格式进行设置。",
+    "answer": "key=value",
+    "solution": "",
+    "timestamp": 1764324533419,
+    "status": "已答"
+  },
+  {
+    "id": "0b9225a408624701bcfa6db03505f9b5",
+    "questionId": "0b9225a408624701bcfa6db03505f9b5",
+    "type": "3",
+    "questionContent": "application-{profile}.yml格式的配置文件名称中，{profile}对应具体环境标识的名称。",
+    "answer": "profile",
+    "solution": "",
+    "timestamp": 1764324535265,
+    "status": "已答"
+  },
+  {
+    "id": "4ee90e8556c64011a1919d81ee64a7aa",
+    "questionId": "4ee90e8556c64011a1919d81ee64a7aa",
+    "type": "3",
+    "questionContent": "当IDEA失去焦点秒后才进行热部署。",
+    "answer": "5",
+    "solution": "",
+    "timestamp": 1764324537203,
+    "status": "已答"
+  },
+  {
+    "id": "ac1cbd5443b4466d95a0760dac50fc5f",
+    "questionId": "ac1cbd5443b4466d95a0760dac50fc5f",
+    "type": "3",
+    "questionContent": "Spring Boot框架集成单元测试提供的依赖启动器，其<scope>范围默认为。",
+    "answer": "test",
+    "solution": "",
+    "timestamp": 1764324539197,
+    "status": "已答"
+  },
+  {
+    "id": "0616ac833a554eccbc8f54fd16844a29",
+    "questionId": "0616ac833a554eccbc8f54fd16844a29",
+    "type": "3",
+    "questionContent": "Spring Boot提倡使用Java替换传统的XML配置方式。",
+    "answer": "正确",
+    "solution": "",
+    "timestamp": 1764324540735,
+    "status": "已答"
+  },
+  {
+    "id": "4f8ef9982cfd4b639f01dc42021f6237",
+    "questionId": "4f8ef9982cfd4b639f01dc42021f6237",
+    "type": "3",
+    "questionContent": "Spring Boot 2.7.6官方声明支持的项目构建工具包括有和Gradle。",
+    "answer": "Maven",
+    "solution": "",
+    "timestamp": 1764324542163,
+    "status": "已答"
+  },
+  {
+    "id": "e42c5baa45644f2788d2325277e79d68",
+    "questionId": "e42c5baa45644f2788d2325277e79d68",
+    "type": "3",
+    "questionContent": "application.yml配置文件是使用编写的文件。",
+    "answer": "YAML",
+    "solution": "",
+    "timestamp": 1764324543653,
+    "status": "已答"
+  },
+  {
+    "id": "2f323a3bdaab4f599a2340c030503d70",
+    "questionId": "2f323a3bdaab4f599a2340c030503d70",
+    "type": "3",
+    "questionContent": "@AutoConfigurationPackage的主要作用是获取项目启动类所在目录，从而指定组件扫描器扫描的包位置。",
+    "answer": "正确",
+    "solution": "",
+    "timestamp": 1764324546208,
+    "status": "已答"
+  },
+  {
+    "id": "17884a7bafbc4317a2c9bd110720ee19",
+    "questionId": "17884a7bafbc4317a2c9bd110720ee19",
+    "type": "3",
+    "questionContent": "Spring Boot项目中，进行Web环境模拟测试包含和发送Web请求两部分。",
+    "answer": "MockMvc",
+    "solution": "",
+    "timestamp": 1764324548040,
+    "status": "已答"
+  },
+  {
+    "id": "4e2239539fd34faa8de67fab24d36627",
+    "questionId": "4e2239539fd34faa8de67fab24d36627",
+    "type": "3",
+    "questionContent": "Spring Boot中添加注解的类称之为配置类。",
+    "answer": "配置类",
+    "solution": "",
+    "timestamp": 1764324549476,
+    "status": "已答"
+  },
+  {
+    "id": "d0aa1cf2efe046f097cacc78046f85d4",
+    "questionId": "d0aa1cf2efe046f097cacc78046f85d4",
+    "type": "3",
+    "questionContent": "使用@Bean注解进行组件配置时，组件名称默认使用的是。",
+    "answer": "方法名",
+    "solution": "",
+    "timestamp": 1764324551054,
+    "status": "已答"
+  },
+  {
+    "id": "5df01a99634a4364b202d05a9062afd2",
+    "questionId": "5df01a99634a4364b202d05a9062afd2",
+    "type": "3",
+    "questionContent": "运行一个Spring Boot项目，可以直接将项目打成包的形式，并通过命令“java -jar xx.jar”运行。",
+    "answer": "正确",
+    "solution": "",
+    "timestamp": 1764324552498,
+    "status": "已答"
+  },
+  {
+    "id": "57f4e22329e7438c8c2fd775feef657e",
+    "questionId": "57f4e22329e7438c8c2fd775feef657e",
+    "type": "3",
+    "questionContent": "@SpringBootApplication注解内部包含了多个注解，核心注解有、@EnableAutoConfiguration、@ComponentScan。",
+    "answer": "@Configuration",
+    "solution": "",
+    "timestamp": 1764324554583,
+    "status": "已答"
+  },
+  {
+    "id": "b7f2129a82334dc0bf31fa342596a11b",
+    "questionId": "b7f2129a82334dc0bf31fa342596a11b",
+    "type": "4",
+    "questionContent": "请简述4条在YAML文件编写属性时需要遵循的规则。",
+    "answer": "1. 使用缩进表示层级关系，空格缩进，不能使用制表符。  \n2. 键值对用冒号加空格分隔，即“key: value”。  \n3. 列表项用短横线加空格开头，即“- item”。  \n4. 字符串一般不需要引号，除非包含特殊字符或可能引起歧义的内容。",
+    "solution": "",
+    "timestamp": 1764324559005,
+    "status": "已答"
+  },
+  {
+    "id": "85173ce4a5c240c4a19cb72cfc80bc23",
+    "questionId": "85173ce4a5c240c4a19cb72cfc80bc23",
+    "type": "4",
+    "questionContent": "请简述Spring Boot项目中如何在单一文件中配置Profile。",
+    "answer": "在application.yml文件中使用`---`分隔符定义多个Profile配置，通过`spring.profiles`指定配置块所属的Profile。例如：\n```yaml\n# 默认配置\nserver:\n  port: 8080\n---\n# 开发环境\nspring:\n  profiles: dev\nserver:\n  port: 9090\n---\n# 生产环境\nspring:\n  profiles: prod\nserver:\n  port: 80\n```",
+    "solution": "",
+    "timestamp": 1764324565042,
+    "status": "已答"
+  },
+  {
+    "id": "8b9d449747994895b25f95bad458dd96",
+    "questionId": "8b9d449747994895b25f95bad458dd96",
+    "type": "4",
+    "questionContent": "请简述@Value注解和@ConfigurationProperties注解的5条区别。",
+    "answer": "1. 作用范围不同：@Value作用于单个属性，@ConfigurationProperties作用于配置类批量绑定。\n2. 功能不同：@Value支持SpEL表达式，@ConfigurationProperties支持复杂类型和验证。\n3. 使用方式不同：@Value直接注解在字段上，@ConfigurationProperties需配合@Configuration或@Component使用。\n4. 松散绑定支持：@Value不支持松散绑定，@ConfigurationProperties支持属性名的松散绑定（如驼峰与短横线）。\n5. 默认值设置：@Value可通过${key:default}设置默认值，@ConfigurationProperties需在配置类字段直接赋值默认值。",
+    "solution": "",
+    "timestamp": 1764324572202,
+    "status": "已答"
+  }
+]
