@@ -52,19 +52,29 @@ Thumbs.db
 # Cursor配置（可选，如果需要共享配置可以移除）
 .cursor/
 
-# 测试文件（可选，如果需要可以移除）
+# 测试文件
 test_*.py
 *_test.py
+*_test.js
+
+# 工具脚本
+tools/
+backend/extract_answers.py
+backend/EXTRACT_ANSWERS.md
+
+# HTML测试文件
+html/
+
+# 测试数据文件
+data/*.json
+data/*.txt
+!data/index.json
+
+# 配置文档（开发用）
+backend/DEEPSEEK_CONFIG.md
 
 # 临时文件
 *.tmp
 *.bak
 *.cache
-
-# HTML测试文件（可选）
-html/
-
-# 数据文件（可选，如果需要可以移除）
-data/*.json
-!data/index.json
 
