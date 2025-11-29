@@ -135,7 +135,7 @@ async def ai_answer_question(
                 }
             ],
             temperature=0.3,  # 降低温度以获得更确定的答案
-            max_tokens=1000
+            max_tokens=2000  # 简答题需要更多token来返回完整答案
         )
         
         logger.info(f"AI API调用成功，收到响应")
@@ -184,13 +184,21 @@ def build_prompt(question: str, question_type: str, options: Optional[List[str]]
         prompt += "\n"
     
     if question_type in ["0", "1"]:
-        prompt += "请直接给出答案选项（如：A、B、AB等），并在答案后提供简要解析。"
+        prompt += "请直接给出答案选项（如：A、B、AB等），不要添加任何前缀标记。答案后可以换行提供简要解析。"
     elif question_type == "2":
-        prompt += "请直接给出答案（正确/错误），并在答案后提供简要解析。"
+        prompt += "请直接给出答案（正确或错误），不要添加任何前缀标记。答案后可以换行提供简要解析。"
     elif question_type == "3":
-        prompt += "请直接给出填空答案，并在答案后提供简要解析。"
+        prompt += "请直接给出填空答案，不要添加任何前缀标记。答案后可以换行提供简要解析。"
+    elif question_type == "4":
+        # 简答题需要完整答案，不要截断，且不能使用markdown格式
+        prompt += "请直接给出完整答案，要求：\n"
+        prompt += "1. 不要使用任何markdown格式标记（如**、#、```、-、*等），只能使用纯文本格式\n"
+        prompt += "2. 不要使用\"答案：\"、\"**答案：**\"等前缀标记，直接开始回答内容\n"
+        prompt += "3. 使用段落格式，在合适的地方使用换行符分隔段落\n"
+        prompt += "4. 答案要完整、准确，不要截断\n"
+        prompt += "5. 保持简洁明了，重点突出"
     else:
-        prompt += "请直接给出答案，并在答案后提供简要解析。"
+        prompt += "请直接给出答案，不要添加任何前缀标记。答案后可以换行提供简要解析。"
     
     return prompt
 
@@ -210,41 +218,104 @@ def parse_ai_answer(answer_text: str, question_type: str, options: Optional[List
     # "答案：A\n解析：..."
     # "A\n\n解析：..."
     # "A"
+    # "**答案：**\n内容..."
     
     answer = ""
     solution = ""
     
+    # 清理答案文本：移除常见的前缀标记和markdown格式
+    cleaned_text = answer_text.strip()
+    # 移除markdown格式的"**答案：**"、"**答案**"等
+    cleaned_text = re.sub(r'\*\*答案[：:]\*\*\s*', '', cleaned_text, flags=re.IGNORECASE)
+    cleaned_text = re.sub(r'\*\*答案\*\*\s*', '', cleaned_text, flags=re.IGNORECASE)
+    cleaned_text = re.sub(r'^答案[：:]\s*', '', cleaned_text, flags=re.IGNORECASE)
+    
+    # 如果是简答题，移除所有markdown格式标记
+    if question_type == "4":
+        # 移除markdown加粗标记 **text** 或 __text__
+        cleaned_text = re.sub(r'\*\*([^*]+)\*\*', r'\1', cleaned_text)
+        cleaned_text = re.sub(r'__([^_]+)__', r'\1', cleaned_text)
+        # 移除markdown斜体标记 *text* 或 _text_
+        cleaned_text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'\1', cleaned_text)
+        cleaned_text = re.sub(r'(?<!_)_([^_]+)_(?!_)', r'\1', cleaned_text)
+        # 移除markdown标题标记 # ## ### 等
+        cleaned_text = re.sub(r'^#{1,6}\s+', '', cleaned_text, flags=re.MULTILINE)
+        # 移除markdown代码块标记 ``` 或 `
+        cleaned_text = re.sub(r'```[\s\S]*?```', '', cleaned_text)
+        cleaned_text = re.sub(r'`([^`]+)`', r'\1', cleaned_text)
+        # 移除markdown列表标记 - * 或数字列表（但保留列表内容）
+        cleaned_text = re.sub(r'^[\s]*[-*+]\s+', '', cleaned_text, flags=re.MULTILINE)
+        cleaned_text = re.sub(r'^\d+\.\s+', '', cleaned_text, flags=re.MULTILINE)
+        # 移除markdown链接和图片标记 [text](url) 或 ![alt](url)
+        cleaned_text = re.sub(r'!?\[([^\]]+)\]\([^\)]+\)', r'\1', cleaned_text)
+        # 移除所有连续空白行（2个或更多换行），统一为单个换行
+        cleaned_text = re.sub(r'\n{2,}', '\n', cleaned_text)
+        # 清理行首行尾空白
+        lines = cleaned_text.split('\n')
+        result_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped:  # 非空行，保留内容
+                result_lines.append(stripped)
+        # 用单个换行连接所有行（段落之间没有空行）
+        cleaned_text = '\n'.join(result_lines)
+        # 移除开头和结尾的空白
+        cleaned_text = cleaned_text.strip()
+    
+    cleaned_text = cleaned_text.strip()
+    
     # 查找答案部分
     if question_type in ["0", "1"]:  # 选择题
         # 提取选项字母
-        match = re.search(r'[A-Z]+', answer_text)
+        match = re.search(r'[A-Z]+', cleaned_text)
         if match:
             answer = match.group()
         else:
             # 如果没有找到，取第一行作为答案
-            lines = answer_text.split('\n')
+            lines = cleaned_text.split('\n')
             answer = lines[0].strip()
     elif question_type == "2":  # 判断题
-        if "正确" in answer_text or "对" in answer_text:
+        if "正确" in cleaned_text or "对" in cleaned_text:
             answer = "正确"
-        elif "错误" in answer_text or "错" in answer_text:
+        elif "错误" in cleaned_text or "错" in cleaned_text:
             answer = "错误"
         else:
-            answer = answer_text.split('\n')[0].strip()
-    else:  # 填空题或简答题
+            answer = cleaned_text.split('\n')[0].strip()
+    elif question_type == "3":  # 填空题
         # 取第一段作为答案
-        lines = answer_text.split('\n')
+        lines = cleaned_text.split('\n')
         answer = lines[0].strip()
+    else:  # 简答题（type=4）
+        # 简答题需要保留完整答案内容
+        # 移除"解析："、"说明："之后的内容作为解析，之前的内容作为答案
+        if "解析" in cleaned_text or "说明" in cleaned_text:
+            # 查找"解析："或"说明："的位置
+            parts = re.split(r'解析[：:]|说明[：:]', cleaned_text, maxsplit=1)
+            if len(parts) > 1:
+                answer = parts[0].strip()
+                solution = parts[1].strip()
+            else:
+                answer = cleaned_text
+                solution = cleaned_text
+        else:
+            # 如果没有解析标记，整个内容作为答案
+            answer = cleaned_text
+            solution = cleaned_text
     
-    # 提取解析部分
-    if "解析" in answer_text or "说明" in answer_text:
-        parts = re.split(r'解析[：:]|说明[：:]', answer_text, maxsplit=1)
-        if len(parts) > 1:
-            solution = parts[1].strip()
+    # 如果答案为空，使用原始文本
+    if not answer or answer == "":
+        answer = cleaned_text if cleaned_text else answer_text
+    
+    # 提取解析部分（如果还没有设置）
+    if not solution or solution == "":
+        if "解析" in answer_text or "说明" in answer_text:
+            parts = re.split(r'解析[：:]|说明[：:]', answer_text, maxsplit=1)
+            if len(parts) > 1:
+                solution = parts[1].strip()
+            else:
+                solution = answer_text
         else:
             solution = answer_text
-    else:
-        solution = answer_text
     
     return {
         "answer": answer,

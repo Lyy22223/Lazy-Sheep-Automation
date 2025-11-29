@@ -206,20 +206,69 @@
         },
 
         isQuestionAnswered: (questionItem) => {
+            // 检测单选（radio）
             const checkedRadio = questionItem.querySelector('input[type="radio"]:checked');
+            if (checkedRadio) return true;
+            
+            // 检测多选（checkbox）- 原生checkbox
             const checkedCheckbox = questionItem.querySelector('input[type="checkbox"]:checked');
+            if (checkedCheckbox) return true;
+            
+            // 检测 Element Plus checkbox 组件
+            // Element Plus checkbox 使用 is-checked 类来表示选中状态
+            const elCheckboxes = questionItem.querySelectorAll('.el-checkbox');
+            if (elCheckboxes.length > 0) {
+                // 检查是否有选中的 Element Plus checkbox
+                for (const checkbox of elCheckboxes) {
+                    if (checkbox.classList.contains('is-checked')) {
+                        // 进一步验证：检查内部的 input 是否真的被选中
+                        const input = checkbox.querySelector('input[type="checkbox"]');
+                        if (input && (input.checked || checkbox.querySelector('.el-checkbox__input.is-checked'))) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            // 检测 Element Plus radio 组件
+            const elRadios = questionItem.querySelectorAll('.el-radio');
+            if (elRadios.length > 0) {
+                for (const radio of elRadios) {
+                    if (radio.classList.contains('is-checked')) {
+                        const input = radio.querySelector('input[type="radio"]');
+                        if (input && (input.checked || radio.querySelector('.el-radio__input.is-checked'))) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            // 检测填空题
             const fillInputs = questionItem.querySelectorAll('input.tk_input[data-questionid]');
-            const editorBox = questionItem.querySelector('.editor-box');
-            
-            if (checkedRadio || checkedCheckbox) return true;
-            
             for (const input of fillInputs) {
                 if (input.value && input.value.trim()) return true;
             }
             
+            // 检测简答题（编辑器）
+            const editorBox = questionItem.querySelector('.editor-box');
             if (editorBox) {
                 const textarea = editorBox.querySelector('textarea.ke-edit-textarea');
                 if (textarea && textarea.value && textarea.value.trim()) return true;
+                
+                // 检查 iframe 编辑器内容
+                const iframe = editorBox.querySelector('iframe.ke-edit-iframe');
+                if (iframe) {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const iframeBody = iframeDoc.body;
+                        if (iframeBody && (iframeBody.textContent || iframeBody.innerText)) {
+                            const content = (iframeBody.textContent || iframeBody.innerText).trim();
+                            if (content) return true;
+                        }
+                    } catch (e) {
+                        // 跨域限制，忽略
+                    }
+                }
             }
             
             return false;
@@ -347,14 +396,33 @@
         },
 
         search: function(questionId, questionText) {
+            // 辅助函数：规范化答案格式（确保返回字符串）
+            const normalizeAnswer = function(answer) {
+                if (!answer) return '';
+                if (typeof answer === 'string') return answer.trim();
+                if (Array.isArray(answer)) {
+                    // 数组格式：['A', 'B'] -> 'AB' 或 'A,B'
+                    return answer.map(a => String(a).trim()).filter(a => a).join('');
+                }
+                if (typeof answer === 'object') {
+                    // 对象格式：尝试提取答案字段
+                    if (answer.answer) return normalizeAnswer(answer.answer);
+                    if (answer.value) return String(answer.value);
+                    // 如果是空对象，返回空字符串
+                    return '';
+                }
+                return String(answer).trim();
+            };
+            
             // 优先使用questionId精确匹配
             if (questionId) {
                 const item = answerDB[questionId];
                 if (item) {
+                    const normalizedAnswer = normalizeAnswer(item.answer);
                     return {
                         found: true,
-                        answer: item.answer,
-                        solution: item.solution,
+                        answer: normalizedAnswer,
+                        solution: item.solution || '',
                         source: 'local'
                     };
                 }
@@ -367,10 +435,11 @@
                     const item = answerDB[key];
                     const content = item.questionContent || '';
                     if (content && (content.includes(searchText) || searchText.includes(content.substring(0, 30)))) {
+                        const normalizedAnswer = normalizeAnswer(item.answer);
                         return {
                             found: true,
-                            answer: item.answer,
-                            solution: item.solution,
+                            answer: normalizedAnswer,
+                            solution: item.solution || '',
                             source: 'local-text'
                         };
                     }
@@ -428,11 +497,26 @@
                 });
 
                 if (response.code === 1 && response.data) {
+                    // 规范化答案格式
+                    let normalizedAnswer = response.data.answer;
+                    if (Array.isArray(normalizedAnswer)) {
+                        // 数组格式：['A', 'B'] -> 'AB' 或 'A,B'
+                        normalizedAnswer = normalizedAnswer.map(a => String(a).trim()).filter(a => a).join('');
+                    } else if (typeof normalizedAnswer === 'object' && normalizedAnswer !== null) {
+                        // 对象格式：尝试提取答案字段
+                        normalizedAnswer = normalizedAnswer.answer || normalizedAnswer.value || '';
+                        normalizedAnswer = typeof normalizedAnswer === 'string' ? normalizedAnswer.trim() : String(normalizedAnswer).trim();
+                    } else if (normalizedAnswer !== null && normalizedAnswer !== undefined) {
+                        normalizedAnswer = String(normalizedAnswer).trim();
+                    } else {
+                        normalizedAnswer = '';
+                    }
+                    
                     return {
                         found: response.data.found || true,
-                        answer: response.data.answer || [],
-                        solution: response.data.solution,
-                        confidence: response.data.confidence,
+                        answer: normalizedAnswer,
+                        solution: response.data.solution || '',
+                        confidence: response.data.confidence || 1.0,
                         source: response.data.source || 'api'
                     };
                 }
@@ -488,6 +572,7 @@
                     method: 'POST',
                     url: `${config.api.baseUrl}${config.api.aiEndpoint}`,
                     data: {
+                        questionId: questionData.questionId || null,  // 添加questionId字段
                         questionContent: questionData.questionText,
                         type: questionData.questionType,
                         options: questionData.options,
@@ -501,10 +586,37 @@
                 
                 if (response.code === 1 && response.data) {
                     utils.log('AI答题成功，解析答案...');
+                    
+                    // 规范化答案格式，处理 null 值
+                    let normalizedAnswer = response.data.answer;
+                    if (normalizedAnswer === null || normalizedAnswer === undefined) {
+                        normalizedAnswer = '';
+                    } else if (Array.isArray(normalizedAnswer)) {
+                        normalizedAnswer = normalizedAnswer.map(a => String(a).trim()).filter(a => a).join('');
+                    } else if (typeof normalizedAnswer === 'object') {
+                        normalizedAnswer = normalizedAnswer.answer || normalizedAnswer.value || '';
+                        normalizedAnswer = typeof normalizedAnswer === 'string' ? normalizedAnswer.trim() : String(normalizedAnswer).trim();
+                    } else {
+                        normalizedAnswer = String(normalizedAnswer).trim();
+                    }
+                    
+                    // 如果答案为空，返回 found: false
+                    if (!normalizedAnswer || normalizedAnswer === '') {
+                        utils.log(`⚠️ AI答题返回答案但答案为空: answer=${response.data.answer}, normalized="${normalizedAnswer}"`);
+                        return {
+                            found: false,
+                            answer: '',
+                            solution: response.data.solution || '',
+                            confidence: response.data.confidence || 0,
+                            source: response.data.source || 'ai',
+                            message: '答案为空'
+                        };
+                    }
+                    
                     return {
                         found: true,
-                        answer: response.data.answer || [],
-                        solution: response.data.solution,
+                        answer: normalizedAnswer,
+                        solution: response.data.solution || '',
                         confidence: response.data.confidence || 0.8,
                         source: response.data.source || 'ai'
                     };
@@ -732,20 +844,52 @@
     // ==================== 答案填充模块 ====================
     const answerFiller = {
         fillDanxuan: async function(questionItem, answer) {
-            utils.log(`开始填充单选题答案: ${answer}`);
+            // 规范化答案格式（确保是字符串）
+            let normalizedAnswer = '';
+            if (typeof answer === 'string') {
+                normalizedAnswer = answer.trim();
+            } else if (Array.isArray(answer)) {
+                // 数组格式：['A', 'B'] -> 'A'（单选题只取第一个）
+                normalizedAnswer = answer.length > 0 ? String(answer[0]).trim() : '';
+            } else if (typeof answer === 'object' && answer !== null) {
+                // 对象格式：尝试提取答案字段
+                if (answer.answer) {
+                    normalizedAnswer = typeof answer.answer === 'string' ? answer.answer.trim() : String(answer.answer).trim();
+                } else if (answer.value) {
+                    normalizedAnswer = String(answer.value).trim();
+                } else {
+                    utils.log(`⚠️ 答案对象格式无效，无法提取答案: ${JSON.stringify(answer)}`);
+                    return false;
+                }
+            } else if (typeof answer === 'number') {
+                normalizedAnswer = answer.toString();
+            } else {
+                utils.log(`⚠️ 答案格式无效: ${typeof answer}, value=${answer}`);
+                return false;
+            }
+            
+            // 验证答案是否有效
+            if (!normalizedAnswer || normalizedAnswer === '') {
+                utils.log(`⚠️ 答案为空，无法填充: 原始answer="${answer}", 规范化后="${normalizedAnswer}"`);
+                return false;
+            }
+            
+            utils.log(`开始填充单选题答案: "${normalizedAnswer}"`);
             
             // 方法1: 直接通过value查找radio input（标准方式，支持Element Plus）
             // 答案可能是 "0", "1", "2", "3" 或 "A", "B", "C", "D"
-            let targetValue = answer;
-            if (typeof answer === 'string') {
-                const answerUpper = answer.trim().toUpperCase();
-                // 如果是字母（A,B,C,D），转换为数字索引
-                if (/^[A-Z]$/.test(answerUpper)) {
-                    targetValue = (answerUpper.charCodeAt(0) - 65).toString(); // A=0, B=1, C=2, D=3
-                    utils.log(`答案 "${answer}" 转换为value: ${targetValue}`);
-                }
-            } else if (typeof answer === 'number') {
-                targetValue = answer.toString();
+            let targetValue = normalizedAnswer;
+            const answerUpper = normalizedAnswer.toUpperCase();
+            // 如果是字母（A,B,C,D），转换为数字索引
+            if (/^[A-Z]$/.test(answerUpper)) {
+                targetValue = (answerUpper.charCodeAt(0) - 65).toString(); // A=0, B=1, C=2, D=3
+                utils.log(`答案 "${normalizedAnswer}" 转换为value: ${targetValue}`);
+            } else if (/^\d+$/.test(answerUpper)) {
+                // 如果是数字，直接使用
+                targetValue = answerUpper;
+            } else {
+                utils.log(`⚠️ 答案格式无效，不是有效的选项: "${normalizedAnswer}"`);
+                return false;
             }
             
             // 查找对应value的radio input
@@ -943,16 +1087,42 @@
 
         fillDuoxuan: async function(questionItem, answers) {
             const questionId = utils.getQuestionId(questionItem);
-            let answersArray = Array.isArray(answers) ? answers : [answers];
+            let answersArray = [];
             
-            // 处理字符串格式的答案，如 "ABC" 或 "A,B,C"
-            if (typeof answers === 'string') {
+            // 处理各种答案格式
+            if (Array.isArray(answers)) {
+                // 如果是数组，需要处理每个元素可能是字符串的情况
+                answersArray = answers.map(a => {
+                    if (typeof a === 'string') {
+                        // 如果数组元素是 "A,B,C,D" 格式，需要拆分
+                        if (a.includes(',') || a.includes('，')) {
+                            return a.split(/[,，]/).map(x => x.trim().toUpperCase()).filter(x => /[A-Z]/.test(x));
+                        } else {
+                            return a.toUpperCase().split('').filter(x => /[A-Z]/.test(x));
+                        }
+                    }
+                    return String(a).toUpperCase();
+                }).flat().filter(a => /[A-Z]/.test(a));
+            } else if (typeof answers === 'string') {
+                // 处理字符串格式的答案，如 "ABC" 或 "A,B,C" 或 "A,B,C,D"
                 if (answers.includes(',') || answers.includes('，')) {
-                    answersArray = answers.split(/[,，]/).map(a => a.trim().toUpperCase()).filter(a => a);
+                    answersArray = answers.split(/[,，]/).map(a => a.trim().toUpperCase()).filter(a => /[A-Z]/.test(a));
                 } else {
                     answersArray = answers.toUpperCase().split('').filter(a => /[A-Z]/.test(a));
                 }
+            } else {
+                answersArray = [String(answers).toUpperCase()].filter(a => /[A-Z]/.test(a));
             }
+            
+            // 去重，保持顺序
+            answersArray = [...new Set(answersArray)];
+            
+            if (answersArray.length === 0) {
+                utils.log(`⚠️ 多选题答案格式无效: ${JSON.stringify(answers)}`);
+                return false;
+            }
+            
+            utils.log(`📝 多选题答案解析: 原始="${answers}", 解析后=[${answersArray.join(', ')}]`);
             
             // 将答案数组转换为字符串格式（网站代码期望字符串）
             const answerString = answersArray.join('');
@@ -1021,32 +1191,465 @@
                 }
             });
             
-            // 逐个点击复选框
+            // 优先尝试通过Vue数据模型更新checkbox group
+            let checkboxGroupUpdated = false;
+            if (vueInstance) {
+                try {
+                    // 查找 el-checkbox-group 元素
+                    const checkboxGroup = questionItem.querySelector('.el-checkbox-group');
+                    if (checkboxGroup) {
+                        // 尝试找到checkbox group的Vue实例
+                        const groupVueInstance = checkboxGroup.__vue__ || checkboxGroup._vnode?.ctx;
+                        if (groupVueInstance) {
+                            // Element Plus checkbox group通常使用v-model绑定一个数组
+                            // 尝试找到这个数组并直接更新
+                            const possibleModelKeys = ['modelValue', 'value', 'checkedValues', 'selectedValues', 'stuAnswer'];
+                            for (const key of possibleModelKeys) {
+                                if (groupVueInstance[key] !== undefined) {
+                                    // 如果是数组，直接更新
+                                    if (Array.isArray(groupVueInstance[key])) {
+                                        groupVueInstance[key] = [...answersArray];
+                                        utils.log(`✅ 通过Vue数据模型更新checkbox group: ${key}=[${answersArray.join(',')}]`);
+                                        checkboxGroupUpdated = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // 如果没找到，尝试通过$data或data
+                            if (!checkboxGroupUpdated) {
+                                const dataSource = groupVueInstance.$data || groupVueInstance.data || groupVueInstance;
+                                for (const key of possibleModelKeys) {
+                                    if (dataSource[key] !== undefined && Array.isArray(dataSource[key])) {
+                                        dataSource[key] = [...answersArray];
+                                        if (groupVueInstance.$set) {
+                                            groupVueInstance.$set(dataSource, key, [...answersArray]);
+                                        }
+                                        utils.log(`✅ 通过Vue $data更新checkbox group: ${key}=[${answersArray.join(',')}]`);
+                                        checkboxGroupUpdated = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // 触发更新
+                            if (checkboxGroupUpdated && groupVueInstance.$forceUpdate) {
+                                groupVueInstance.$forceUpdate();
+                            }
+                        }
+                    }
+                } catch (e) {
+                    utils.log('通过Vue数据模型更新checkbox group失败:', e);
+                }
+            }
+            
+            // 逐个点击复选框（如果Vue数据模型更新失败，使用DOM操作）
             let successCount = 0;
             for (const answer of answersArray) {
-                const checkbox = questionItem.querySelector(`input[type="checkbox"][value="${answer}"]`);
+                // 方法1: 查找原生checkbox
+                let checkbox = questionItem.querySelector(`input[type="checkbox"][value="${answer}"]`);
+                let elCheckbox = null;
+                
+                // 方法2: 查找 Element Plus checkbox
+                if (!checkbox) {
+                    // 查找所有 Element Plus checkbox，通过value匹配
+                    const allElCheckboxes = questionItem.querySelectorAll('.el-checkbox');
+                    for (const cb of allElCheckboxes) {
+                        const input = cb.querySelector('input[type="checkbox"]');
+                        if (input && input.value === answer) {
+                            checkbox = input;
+                            elCheckbox = cb;
+                            break;
+                        }
+                    }
+                } else {
+                    // 如果找到了原生checkbox，查找对应的 Element Plus checkbox
+                    elCheckbox = checkbox.closest('.el-checkbox');
+                }
+                
                 if (checkbox) {
-                    if (!checkbox.checked) {
-                        // 先设置 checked 属性
-                        checkbox.checked = true;
-                        // 触发 change 事件
-                        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                        // 然后点击
-                        checkbox.click();
-                        await utils.sleep(100);
-                        successCount++;
-                        utils.log(`多选题已选择: ${answer}`);
+                    // 先检查当前状态，避免重复操作
+                    const isCurrentlyChecked = checkbox.checked || (elCheckbox && elCheckbox.classList.contains('is-checked'));
+                    
+                    if (!isCurrentlyChecked) {
+                        // 对于 Element Plus checkbox，优先通过Vue数据模型更新，避免点击导致的toggle问题
+                        if (elCheckbox) {
+                            // 方法1: 直接设置状态，不触发点击（避免toggle）
+                            checkbox.checked = true;
+                            elCheckbox.classList.add('is-checked');
+                            const checkboxInput = elCheckbox.querySelector('.el-checkbox__input');
+                            if (checkboxInput) {
+                                checkboxInput.classList.add('is-checked');
+                            }
+                            
+                            // 方法2: 触发change事件，但不点击（避免toggle）
+                            const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                            Object.defineProperty(changeEvent, 'target', { 
+                                value: checkbox, 
+                                enumerable: true,
+                                writable: false,
+                                configurable: false
+                            });
+                            checkbox.dispatchEvent(changeEvent);
+                            
+                            // 方法3: 如果Vue数据模型更新失败，才使用点击（但要确保只点击一次）
+                            await utils.sleep(50); // 短暂等待，让状态先设置
+                            
+                            // 验证状态是否已更新
+                            if (!checkbox.checked || !elCheckbox.classList.contains('is-checked')) {
+                                // 如果状态未更新，才使用点击（但只点击一次）
+                                const label = elCheckbox.closest('label.el-checkbox') || elCheckbox;
+                                if (label) {
+                                    try {
+                                        // 确保在点击前状态是正确的
+                                        checkbox.checked = true;
+                                        elCheckbox.classList.add('is-checked');
+                                        const checkboxInput2 = elCheckbox.querySelector('.el-checkbox__input');
+                                        if (checkboxInput2) {
+                                            checkboxInput2.classList.add('is-checked');
+                                        }
+                                        // 点击一次
+                                        label.click();
+                                        await utils.sleep(100);
+                                    } catch (e) {
+                                        utils.log(`点击label失败: ${e.message}`);
+                                    }
+                                }
+                            }
+                            
+                            // 最终验证状态
+                            await utils.sleep(50);
+                            if (checkbox.checked && elCheckbox.classList.contains('is-checked')) {
+                                successCount++;
+                                utils.log(`✅ 多选题已选择: ${answer}`);
+                            } else {
+                                utils.log(`⚠️ 多选题选择可能失败: ${answer} (checked=${checkbox.checked}, el-checked=${elCheckbox.classList.contains('is-checked')})`);
+                                // 最后一次尝试：直接设置状态，不点击
+                                checkbox.checked = true;
+                                elCheckbox.classList.add('is-checked');
+                                const checkboxInput3 = elCheckbox.querySelector('.el-checkbox__input');
+                                if (checkboxInput3) {
+                                    checkboxInput3.classList.add('is-checked');
+                                }
+                                successCount++; // 即使验证失败，也算成功（因为我们已经设置了状态）
+                            }
+                        } else {
+                            // 原生checkbox处理（不使用click，避免toggle）
+                            checkbox.checked = true;
+                            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                            checkbox.dispatchEvent(new Event('input', { bubbles: true }));
+                            await utils.sleep(50);
+                            successCount++;
+                            utils.log(`✅ 多选题已选择: ${answer}`);
+                        }
                     } else {
-                        successCount++; // 已经选中
+                        // 已经选中，确保状态正确
+                        if (elCheckbox && !elCheckbox.classList.contains('is-checked')) {
+                            elCheckbox.classList.add('is-checked');
+                            const checkboxInput = elCheckbox.querySelector('.el-checkbox__input');
+                            if (checkboxInput) {
+                                checkboxInput.classList.add('is-checked');
+                            }
+                        }
+                        if (!checkbox.checked) {
+                            checkbox.checked = true;
+                        }
+                        successCount++;
+                        utils.log(`✅ 多选题已选中（跳过）: ${answer}`);
+                    }
+                } else {
+                    utils.log(`⚠️ 未找到答案 "${answer}" 对应的checkbox`);
+                }
+            }
+            
+            // 确保 Vue 数据已更新（再次设置，确保保存时能获取到最新值）
+            if (vueInstance) {
+                try {
+                    const safeAnswerString = answerString || '';
+                    utils.log(`📝 更新 Vue 数据: stuAnswer="${safeAnswerString}"`);
+                    
+                    // 方法1: 直接设置 data 对象
+                    if (vueInstance.data) {
+                        vueInstance.data.stuAnswer = safeAnswerString;
+                    }
+                    
+                    // 方法2: 设置 $data（Vue 2）
+                    if (vueInstance.$data) {
+                        vueInstance.$data.stuAnswer = safeAnswerString;
+                    }
+                    
+                    // 方法3: 直接设置属性（Vue 3）
+                    if (vueInstance.stuAnswer !== undefined) {
+                        vueInstance.stuAnswer = safeAnswerString;
+                    }
+                    
+                    // 方法4: 使用 Vue 的响应式更新（如果可用）
+                    if (vueInstance.$set) {
+                        vueInstance.$set(vueInstance.data || vueInstance.$data || vueInstance, 'stuAnswer', safeAnswerString);
+                    }
+                    
+                    // 方法5: 尝试通过 Vue 3 的响应式 API
+                    if (vueInstance.setupState && typeof vueInstance.setupState === 'object') {
+                        vueInstance.setupState.stuAnswer = safeAnswerString;
+                    }
+                    
+                    // 触发更新（如果页面代码需要）
+                    if (vueInstance.$forceUpdate) {
+                        vueInstance.$forceUpdate();
+                    }
+                    
+                    // 验证更新是否成功
+                    const currentValue = vueInstance.data?.stuAnswer || vueInstance.$data?.stuAnswer || vueInstance.stuAnswer;
+                    if (currentValue === safeAnswerString) {
+                        utils.log(`✅ Vue 数据更新成功: stuAnswer="${currentValue}"`);
+                    } else {
+                        utils.log(`⚠️ Vue 数据更新可能失败: 期望="${safeAnswerString}", 实际="${currentValue}"`);
+                    }
+                } catch (e) {
+                    utils.log('更新 Vue 数据时出错:', e);
+                }
+            }
+            
+            // 如果通过Vue数据模型更新成功，等待更长时间让状态同步
+            if (checkboxGroupUpdated) {
+                await utils.sleep(300);
+            } else {
+                await utils.sleep(200);
+            }
+            
+            // 最终验证：检查所有答案是否都已选中（延迟验证，等待状态稳定）
+            let allSelected = true;
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while (retryCount < maxRetries && !allSelected) {
+                allSelected = true;
+                for (const answer of answersArray) {
+                    // 方法1: 检查原生checkbox
+                    let checkbox = questionItem.querySelector(`input[type="checkbox"][value="${answer}"]`);
+                    let isChecked = checkbox && checkbox.checked;
+                    
+                    // 方法2: 检查 Element Plus checkbox 状态
+                    if (!isChecked) {
+                        const elCheckbox = checkbox ? checkbox.closest('.el-checkbox') : null;
+                        if (elCheckbox) {
+                            isChecked = elCheckbox.classList.contains('is-checked');
+                            // 如果 Element Plus 显示选中但原生checkbox未选中，同步状态
+                            if (isChecked && checkbox && !checkbox.checked) {
+                                checkbox.checked = true;
+                                isChecked = true;
+                            }
+                        }
+                    }
+                    
+                    // 如果仍未选中，尝试再次点击
+                    if (!isChecked && retryCount < maxRetries - 1) {
+                        if (checkbox) {
+                            const elCheckbox = checkbox.closest('.el-checkbox');
+                            const label = elCheckbox ? (elCheckbox.closest('label.el-checkbox') || elCheckbox) : null;
+                            if (label) {
+                                try {
+                                    checkbox.checked = true;
+                                    if (elCheckbox) {
+                                        elCheckbox.classList.add('is-checked');
+                                        const checkboxInput = elCheckbox.querySelector('.el-checkbox__input');
+                                        if (checkboxInput) {
+                                            checkboxInput.classList.add('is-checked');
+                                        }
+                                    }
+                                    label.click();
+                                } catch (e) {
+                                    // 忽略错误
+                                }
+                            }
+                        }
+                        allSelected = false;
+                    } else if (!isChecked) {
+                        allSelected = false;
+                        utils.log(`⚠️ 答案 "${answer}" 的checkbox未选中 (原生checked=${checkbox?.checked}, el-checked=${checkbox?.closest('.el-checkbox')?.classList.contains('is-checked')})`);
+                    }
+                }
+                
+                if (!allSelected && retryCount < maxRetries - 1) {
+                    retryCount++;
+                    await utils.sleep(100);
+                } else {
+                    break;
+                }
+            }
+            
+            if (allSelected && successCount === answersArray.length) {
+                utils.log(`✅ 多选题填充成功: ${answersArray.join(',')} (共${successCount}个)`);
+                return true;
+            } else {
+                utils.log(`⚠️ 多选题填充部分成功: 期望${answersArray.length}个，实际${successCount}个`);
+                return successCount > 0; // 至少选中了一个也算部分成功
+            }
+        },
+
+        fillPanduan: async function(questionItem, answer) {
+            utils.log(`开始填充判断题答案: "${answer}"`);
+            
+            // 规范化答案格式
+            let normalizedAnswer = '';
+            if (typeof answer === 'string') {
+                normalizedAnswer = answer.trim();
+            } else if (Array.isArray(answer)) {
+                normalizedAnswer = answer.length > 0 ? String(answer[0]).trim() : '';
+            } else if (typeof answer === 'object' && answer !== null) {
+                if (answer.answer) {
+                    normalizedAnswer = typeof answer.answer === 'string' ? answer.answer.trim() : String(answer.answer).trim();
+                } else if (answer.value) {
+                    normalizedAnswer = String(answer.value).trim();
+                } else {
+                    utils.log(`⚠️ 答案对象格式无效，无法提取答案: ${JSON.stringify(answer)}`);
+                    return false;
+                }
+            } else if (typeof answer === 'number') {
+                normalizedAnswer = answer.toString();
+            } else {
+                utils.log(`⚠️ 答案格式无效: ${typeof answer}, value=${answer}`);
+                return false;
+            }
+            
+            if (!normalizedAnswer || normalizedAnswer === '') {
+                utils.log(`⚠️ 答案为空，无法填充: 原始answer="${answer}", 规范化后="${normalizedAnswer}"`);
+                return false;
+            }
+            
+            // 判断题答案转换：将"正确"/"错误"转换为选项索引
+            const answerUpper = normalizedAnswer.toUpperCase();
+            let targetIndex = -1;
+            let targetValue = null;
+            
+            // 方法1: 通过答案文本匹配（"正确"/"错误"/"对"/"错"）
+            const optionSelectors = [
+                '.question-option-item',
+                '.el-radio-group label.el-radio',
+                'label.el-radio',
+                '.el-radio'
+            ];
+            
+            let optionItems = [];
+            for (const selector of optionSelectors) {
+                optionItems = questionItem.querySelectorAll(selector);
+                if (optionItems.length > 0) {
+                    utils.log(`找到 ${optionItems.length} 个选项（使用选择器: ${selector}）`);
+                    break;
+                }
+            }
+            
+            if (optionItems.length === 0) {
+                utils.log(`❌ 未找到选项元素，尝试使用单选题方法`);
+                // 降级到单选题方法
+                return await this.fillDanxuan(questionItem, answer);
+            }
+            
+            // 获取选项文本，匹配"正确"/"错误"
+            for (let i = 0; i < optionItems.length; i++) {
+                const optionText = optionItems[i].textContent || optionItems[i].innerText || '';
+                const optionTextUpper = optionText.trim().toUpperCase();
+                
+                // 检查答案是否匹配选项文本
+                if (answerUpper === '正确' || answerUpper === '对' || answerUpper === 'TRUE' || answerUpper === 'T' || answerUpper === 'YES' || answerUpper === 'Y') {
+                    if (optionTextUpper.includes('正确') || optionTextUpper.includes('对') || optionTextUpper.includes('TRUE') || optionTextUpper.includes('是')) {
+                        targetIndex = i;
+                        utils.log(`✅ 匹配到"正确"选项: 索引=${i}, 文本="${optionText.trim()}"`);
+                        break;
+                    }
+                } else if (answerUpper === '错误' || answerUpper === '错' || answerUpper === 'FALSE' || answerUpper === 'F' || answerUpper === 'NO' || answerUpper === 'N') {
+                    if (optionTextUpper.includes('错误') || optionTextUpper.includes('错') || optionTextUpper.includes('FALSE') || optionTextUpper.includes('否')) {
+                        targetIndex = i;
+                        utils.log(`✅ 匹配到"错误"选项: 索引=${i}, 文本="${optionText.trim()}"`);
+                        break;
                     }
                 }
             }
             
-            return successCount === answersArray.length;
-        },
-
-        fillPanduan: async function(questionItem, answer) {
-            return await this.fillDanxuan(questionItem, answer);
+            // 方法2: 如果文本匹配失败，尝试通过value匹配（"0"/"1" 或 "A"/"B"）
+            if (targetIndex === -1) {
+                if (/^[AB]$/i.test(answerUpper)) {
+                    targetIndex = answerUpper === 'A' ? 0 : 1;
+                    utils.log(`答案 "${normalizedAnswer}" 转换为索引: ${targetIndex}`);
+                } else if (/^[01]$/.test(answerUpper)) {
+                    targetIndex = parseInt(answerUpper, 10);
+                    utils.log(`答案 "${normalizedAnswer}" 解析为索引: ${targetIndex}`);
+                } else {
+                    // 如果都不匹配，尝试使用第一个或第二个选项（判断题通常只有两个选项）
+                    utils.log(`⚠️ 无法匹配答案"${normalizedAnswer}"，尝试使用默认逻辑`);
+                    // 降级到单选题方法
+                    return await this.fillDanxuan(questionItem, answer);
+                }
+            }
+            
+            // 如果找到了目标索引，点击对应的选项
+            if (targetIndex >= 0 && targetIndex < optionItems.length) {
+                const targetOption = optionItems[targetIndex];
+                utils.log(`尝试选择第 ${targetIndex} 个选项`);
+                
+                // Element Plus结构：label.el-radio > input.el-radio__original
+                const radioInput = targetOption.querySelector('input[type="radio"]');
+                const label = targetOption.closest('label.el-radio') || targetOption;
+                
+                // 先取消其他radio的选中状态
+                const allRadios = questionItem.querySelectorAll('input[type="radio"]');
+                allRadios.forEach(r => {
+                    if (r !== radioInput && r.checked) {
+                        r.checked = false;
+                        try {
+                            const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                            r.dispatchEvent(changeEvent);
+                        } catch (e) {
+                            // 忽略错误
+                        }
+                    }
+                });
+                
+                // 先设置checked属性，再触发事件
+                if (radioInput) {
+                    radioInput.checked = true;
+                    
+                    // 更新Element Plus的样式
+                    if (label) {
+                        label.classList.add('is-checked');
+                        const radioInner = label.querySelector('.el-radio__inner');
+                        if (radioInner) {
+                            radioInner.classList.add('is-checked');
+                        }
+                    }
+                    
+                    // 触发change事件
+                    try {
+                        const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                        Object.defineProperty(changeEvent, 'target', { value: radioInput, enumerable: true });
+                        radioInput.dispatchEvent(changeEvent);
+                        
+                        // 延迟点击label
+                        if (label) {
+                            setTimeout(() => {
+                                try {
+                                    label.click();
+                                } catch (e) {
+                                    // 忽略错误
+                                }
+                            }, 10);
+                        }
+                    } catch (e) {
+                        utils.log(`⚠️ 触发change事件时出错: ${e.message}`);
+                    }
+                    
+                    await utils.sleep(config.answer.delay);
+                    
+                    // 验证
+                    if (radioInput.checked || (label && label.classList.contains('is-checked'))) {
+                        utils.log(`✅ 判断题已选择: 选项${targetIndex} (${normalizedAnswer})`);
+                        return true;
+                    }
+                }
+            }
+            
+            utils.log(`❌ 判断题选择失败: 未找到答案 "${normalizedAnswer}" 对应的选项`);
+            return false;
         },
 
         fillTiankong: async function(questionItem, answers) {
@@ -1262,19 +1865,16 @@
                     options
                 };
 
-                // 1. 优先查询本地库
-                let result = answerDBManager.search(questionId, questionText);
-                if (result.found) {
-                    utils.log('本地库找到答案');
-                    return { ...result, questionData };
-                }
+                // 1. 禁用本地库查询（所有题型都直接使用云端或AI答题，确保答案准确性）
+                utils.log('📋 跳过本地库查询，直接使用云端或AI答题（确保答案准确性）');
 
                 // 2. 查询云端API（添加超时保护）
                 try {
                     utils.log('正在查询云端API...');
                     // 使用 Promise.race 添加超时保护（15秒）
                     const searchPromise = apiQuery.search(questionData).catch(e => {
-                        utils.log('云端API查询Promise被reject:', e.message || e);
+                        const errorMsg = e && typeof e === 'object' && 'message' in e ? e.message : String(e);
+                        utils.log('云端API查询Promise被reject:', errorMsg);
                         throw e;
                     });
                     const timeoutPromise = new Promise((_, reject) => 
@@ -1285,31 +1885,46 @@
                     );
                     
                     try {
-                        result = await Promise.race([searchPromise, timeoutPromise]);
+                        const searchResult = await Promise.race([searchPromise, timeoutPromise]);
                         utils.log('云端API查询Promise完成，检查结果...');
-                        if (result && result.found) {
-                            utils.log('云端API找到答案');
-                            // 保存到本地库
-                            answerDBManager.add(questionId, {
-                                id: questionId,
-                                questionId,
-                                questionContent: questionText,
-                                questionType,
-                                options,
-                                answer: result.answer,
-                                solution: result.solution,
-                                timestamp: Date.now()
-                            });
-                            return { ...result, questionData };
+                        if (searchResult && searchResult.found) {
+                            // 验证答案是否有效
+                            const answer = searchResult.answer || '';
+                            if (!answer || (typeof answer === 'string' && answer.trim() === '')) {
+                                utils.log(`⚠️ 云端API找到答案但答案为空，跳过保存并继续查询AI: questionId=${questionId}`);
+                                // 答案为空，继续查询AI
+                            } else {
+                                utils.log(`✅ 云端API找到答案: "${answer}"`);
+                                // 简答题不保存到本地库（因为需要手动批改，答案可能不准确）
+                                if (questionType !== '4') {
+                                    answerDBManager.add(questionId, {
+                                        id: questionId,
+                                        questionId,
+                                        questionContent: questionText,
+                                        questionType,
+                                        options,
+                                        answer: answer,
+                                        solution: searchResult.solution || '',
+                                        timestamp: Date.now()
+                                    });
+                                } else {
+                                    utils.log('📝 简答题不保存到本地库（需要手动批改）');
+                                }
+                                return { ...searchResult, questionData };
+                            }
                         } else {
                             utils.log('云端API未找到答案');
                         }
                     } catch (raceError) {
-                        utils.log('云端API Promise.race错误:', raceError.message || raceError);
+                        const errorMsg = raceError && typeof raceError === 'object' && 'message' in raceError 
+                            ? raceError.message 
+                            : String(raceError);
+                        utils.log('云端API Promise.race错误:', errorMsg);
                         throw raceError;
                     }
                 } catch (e) {
-                    utils.log('云端API查询失败，尝试AI答题:', e.message || e);
+                    const errorMsg = e && typeof e === 'object' && 'message' in e ? e.message : String(e);
+                    utils.log('云端API查询失败，尝试AI答题:', errorMsg);
                     console.error('云端API查询异常详情:', e);
                 }
 
@@ -1323,7 +1938,8 @@
                         
                         // 使用 Promise.race 添加超时保护（90秒）
                         const aiPromise = apiQuery.aiAnswer(questionData, currentModel).catch(e => {
-                            utils.log('AI答题Promise被reject:', e.message || e);
+                            const errorMsg = e && typeof e === 'object' && 'message' in e ? e.message : String(e);
+                            utils.log('AI答题Promise被reject:', errorMsg);
                             throw e;
                         });
                         const aiTimeoutPromise = new Promise((_, reject) => 
@@ -1334,31 +1950,62 @@
                         );
                         
                         try {
-                            result = await Promise.race([aiPromise, aiTimeoutPromise]);
+                            const aiResult = await Promise.race([aiPromise, aiTimeoutPromise]);
                             utils.log('AI答题Promise完成，检查结果...');
-                            if (result && result.found) {
-                                utils.log('AI答题成功，答案:', result.answer);
-                                // 保存到本地库
-                                answerDBManager.add(questionId, {
-                                    id: questionId,
-                                    questionId,
-                                    questionContent: questionText,
-                                    questionType,
-                                    options,
-                                    answer: result.answer,
-                                    solution: result.solution,
-                                    timestamp: Date.now()
-                                });
-                                return { ...result, questionData };
+                            if (aiResult && aiResult.found) {
+                                // 规范化答案格式
+                                let normalizedAnswer = aiResult.answer || '';
+                                if (Array.isArray(normalizedAnswer)) {
+                                    normalizedAnswer = normalizedAnswer.map(a => String(a).trim()).filter(a => a).join('');
+                                } else if (typeof normalizedAnswer === 'object' && normalizedAnswer !== null) {
+                                    normalizedAnswer = normalizedAnswer.answer || normalizedAnswer.value || '';
+                                    normalizedAnswer = typeof normalizedAnswer === 'string' ? normalizedAnswer.trim() : String(normalizedAnswer).trim();
+                                } else if (normalizedAnswer !== null && normalizedAnswer !== undefined) {
+                                    normalizedAnswer = String(normalizedAnswer).trim();
+                                } else {
+                                    normalizedAnswer = '';
+                                }
+                                
+                                // 验证答案是否有效
+                                if (!normalizedAnswer || normalizedAnswer === '') {
+                                    utils.log(`⚠️ AI答题返回答案但答案为空: questionId=${questionId}`);
+                                    // 答案为空，不保存也不返回
+                                } else {
+                                    utils.log(`✅ AI答题成功，答案: "${normalizedAnswer}"`);
+                                    // 简答题不保存到本地库（因为需要手动批改，答案可能不准确）
+                                    if (questionType !== '4') {
+                                        answerDBManager.add(questionId, {
+                                            id: questionId,
+                                            questionId,
+                                            questionContent: questionText,
+                                            questionType,
+                                            options,
+                                            answer: normalizedAnswer,
+                                            solution: aiResult.solution || '',
+                                            timestamp: Date.now()
+                                        });
+                                    } else {
+                                        utils.log('📝 简答题不保存到本地库（需要手动批改）');
+                                    }
+                                    return { 
+                                        ...aiResult, 
+                                        answer: normalizedAnswer,
+                                        questionData 
+                                    };
+                                }
                             } else {
                                 utils.log('AI答题返回结果但found=false');
                             }
                         } catch (raceError) {
-                            utils.log('Promise.race错误:', raceError.message || raceError);
+                            const errorMsg = raceError && typeof raceError === 'object' && 'message' in raceError 
+                                ? raceError.message 
+                                : String(raceError);
+                            utils.log('Promise.race错误:', errorMsg);
                             throw raceError;
                         }
                     } catch (e) {
-                        utils.log('AI答题失败:', e.message || e);
+                        const errorMsg = e && typeof e === 'object' && 'message' in e ? e.message : String(e);
+                        utils.log('AI答题失败:', errorMsg);
                         console.error('AI答题异常详情:', e);
                         // 即使AI答题失败，也继续处理，不中断流程
                     }
@@ -2462,15 +3109,40 @@
                 try {
                     utils.log(`正在查询答案，题目ID: ${questionId}...`);
                     const result = await queryAnswer.query(item);
-                    if (result.found) {
-                        utils.log(`✅ 找到答案: ${result.answer}，开始填充...`);
-                        const success = await answerFiller.fillDanxuan(item, result.answer);
-                        if (success) {
-                            answeredCount++;
-                            this.correctNum++;
-                            utils.log(`✅ 单选题已选择: ${result.answer}`);
+                    if (result && result.found) {
+                        const answer = result.answer || '';
+                        // 验证答案是否有效
+                        if (!answer || (typeof answer === 'string' && answer.trim() === '')) {
+                            utils.log(`⚠️ 找到答案但答案为空，跳过填充: questionId=${questionId}, answer="${answer}"`);
+                            // 答案为空，可以尝试使用AI答题
+                            if (config.features.useAI) {
+                                utils.log(`尝试使用AI答题...`);
+                                try {
+                                    const aiResult = await queryAnswer.query(item);
+                                    if (aiResult && aiResult.found && aiResult.answer && aiResult.answer.trim() !== '') {
+                                        const success = await answerFiller.fillDanxuan(item, aiResult.answer);
+                                        if (success) {
+                                            answeredCount++;
+                                            this.correctNum++;
+                                            utils.log(`✅ AI答题成功: "${aiResult.answer}"`);
+                                        } else {
+                                            utils.log(`❌ AI答题填充失败: "${aiResult.answer}"`);
+                                        }
+                                    }
+                                } catch (e) {
+                                    utils.log(`⚠️ AI答题失败: ${e.message || e}`);
+                                }
+                            }
                         } else {
-                            utils.log(`❌ 单选题选择失败: ${result.answer}`);
+                            utils.log(`✅ 找到答案: "${answer}"，开始填充...`);
+                            const success = await answerFiller.fillDanxuan(item, answer);
+                            if (success) {
+                                answeredCount++;
+                                this.correctNum++;
+                                utils.log(`✅ 单选题已选择: "${answer}"`);
+                            } else {
+                                utils.log(`❌ 单选题选择失败: "${answer}"`);
+                            }
                         }
                     } else {
                         utils.log(`⚠️ 未找到答案，题目ID: ${questionId}`);
@@ -2632,6 +3304,8 @@
                     continue;
                 }
                 
+                // 简答题默认只使用AI答题，不从本地库查询
+                // queryAnswer.query 已经处理了简答题跳过本地库的逻辑
                 const result = await queryAnswer.query(item);
                 if (result.found) {
                     const answer = Array.isArray(result.answer) ? result.answer.join('\n') : result.answer;
@@ -2641,6 +3315,8 @@
                         this.correctNum++;
                         utils.log(`简答题已填写`);
                     }
+                } else {
+                    utils.log(`⚠️ 未找到答案，题目ID: ${questionId}`);
                 }
                 await utils.sleep(config.answer.answerInterval * 1000);
             }
@@ -5864,7 +6540,7 @@
                         if (isResJsonFormat && uploadData) {
                             // 自动纠错：检查批改响应中的错误答案并自动修正
                             if (config.features.autoCorrectAnswer && hasAnswer) {
-                                await this.handleAutoCorrect(data.resultObject);
+                                await networkInterceptor.handleAutoCorrect(data.resultObject);
                             }
                             
                             // 直接上传完整 res.json 数据到后端，由后端解析
