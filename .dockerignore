@@ -1,0 +1,92 @@
+# Git
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 环境变量文件
+.env
+.env.local
+
+# 日志文件
+*.log
+
+# 测试文件
+test_*.py
+*_test.py
+
+# 工具脚本
+tools/
+backend/extract_answers.py
+backend/EXTRACT_ANSWERS.md
+backend/get_api_key.py
+backend/test_*.py
+
+# HTML测试文件
+html/
+docs/index.html
+
+# 测试数据文件
+data/*.json
+data/*.txt
+!data/index.json
+
+# 配置文档（开发用）
+backend/DEEPSEEK_CONFIG.md
+
+# 临时文件
+*.tmp
+*.bak
+*.cache
+
+# Docker相关（避免递归）
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# 前端脚本（不需要在Docker中）
+scripts/
+
+# 文档（可选）
+*.md
+!README.md
+!DOCKER_DEPLOY.md
+

@@ -10,6 +10,7 @@ import jieba
 from models import SearchRequest
 from database import AsyncSessionLocal, PublicQuestionTable, APIKeyQuestionTable
 from config import SIMILARITY_THRESHOLD
+from utils import clean_question_content
 
 
 async def search_answer(request: SearchRequest, api_key: str) -> Optional[Dict]:
@@ -21,45 +22,54 @@ async def search_answer(request: SearchRequest, api_key: str) -> Optional[Dict]:
     2. 搜索公共答案库（精确匹配）
     3. 模糊匹配（相似度匹配）
     """
+    # 清理题目内容，去除特殊标记
+    cleaned_content = clean_question_content(request.questionContent)
+    
     async with AsyncSessionLocal() as session:
         # 1. 精确匹配：优先搜索API Key贡献库
         if request.questionId:
             result = await search_by_id_in_key_library(session, api_key, request.questionId, request.platform)
             if result:
-                return {
-                    "found": True,
-                    "answer": result.answer,
-                    "solution": result.solution,
-                    "questionId": result.question_id,
-                    "confidence": 1.0,
-                    "matchType": "exact",
-                    "source": "api_key"
-                }
+                # 检查答案是否有效（不为None且不为空字符串）
+                if result.answer is not None and str(result.answer).strip():
+                    return {
+                        "found": True,
+                        "answer": result.answer,
+                        "solution": result.solution,
+                        "questionId": result.question_id,
+                        "confidence": 1.0,
+                        "matchType": "exact",
+                        "source": "api_key"
+                    }
+                # 如果答案为空，继续搜索其他库
         
         # 2. 精确匹配：搜索公共答案库
         if request.questionId:
             result = await search_by_id_in_public(session, request.questionId, request.platform)
             if result:
-                return {
-                    "found": True,
-                    "answer": result.answer,
-                    "solution": result.solution,
-                    "questionId": result.question_id,
-                    "confidence": 1.0,
-                    "matchType": "exact",
-                    "source": "public"
-                }
+                # 检查答案是否有效（不为None且不为空字符串）
+                if result.answer is not None and str(result.answer).strip():
+                    return {
+                        "found": True,
+                        "answer": result.answer,
+                        "solution": result.solution,
+                        "questionId": result.question_id,
+                        "confidence": 1.0,
+                        "matchType": "exact",
+                        "source": "public"
+                    }
+                # 如果答案为空，继续搜索
         
         # 3. 文本相似度匹配：先搜索API Key贡献库
         result = await search_by_similarity_in_key_library(
-            session, api_key, request.questionContent, request.type, request.platform
+            session, api_key, cleaned_content, request.type, request.platform
         )
         if result and result.get("confidence", 0) >= SIMILARITY_THRESHOLD:
             return result
         
         # 4. 文本相似度匹配：搜索公共答案库
         result = await search_by_similarity_in_public(
-            session, request.questionContent, request.type, request.platform
+            session, cleaned_content, request.type, request.platform
         )
         if result and result.get("confidence", 0) >= SIMILARITY_THRESHOLD:
             return result
@@ -129,15 +139,18 @@ async def search_by_similarity_in_key_library(
             best_match = q
     
     if best_match and best_score >= SIMILARITY_THRESHOLD:
-        return {
-            "found": True,
-            "answer": best_match.answer,
-            "solution": best_match.solution,
-            "questionId": best_match.question_id,
-            "confidence": best_score,
-            "matchType": "similar",
-            "source": "api_key"
-        }
+        # 检查答案是否有效（不为None且不为空字符串）
+        if best_match.answer is not None and str(best_match.answer).strip():
+            return {
+                "found": True,
+                "answer": best_match.answer,
+                "solution": best_match.solution,
+                "questionId": best_match.question_id,
+                "confidence": best_score,
+                "matchType": "similar",
+                "source": "api_key"
+            }
+        # 如果答案为空，返回None继续搜索
     
     return None
 
@@ -168,15 +181,18 @@ async def search_by_similarity_in_public(
             best_match = q
     
     if best_match and best_score >= SIMILARITY_THRESHOLD:
-        return {
-            "found": True,
-            "answer": best_match.answer,
-            "solution": best_match.solution,
-            "questionId": best_match.question_id,
-            "confidence": best_score,
-            "matchType": "similar",
-            "source": "public"
-        }
+        # 检查答案是否有效（不为None且不为空字符串）
+        if best_match.answer is not None and str(best_match.answer).strip():
+            return {
+                "found": True,
+                "answer": best_match.answer,
+                "solution": best_match.solution,
+                "questionId": best_match.question_id,
+                "confidence": best_score,
+                "matchType": "similar",
+                "source": "public"
+            }
+        # 如果答案为空，返回None继续搜索
     
     return None
 

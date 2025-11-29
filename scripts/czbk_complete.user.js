@@ -36,14 +36,13 @@
         
         // 功能开关
         features: {
-            autoAnswer: false,        // 自动答题（默认关闭）
-            autoSubmit: false,        // 自动提交（默认关闭）
-            skipAnswered: true,       // 跳过已答题
-            useAI: true,              // 启用AI答题
-            showControlPanel: true,   // 显示控制面板
+            autoAnswer: false,        // 自动答题（默认关闭，从缓存加载）
+            autoSubmit: false,        // 自动提交（默认关闭，从缓存加载）
+            skipAnswered: true,       // 跳过已答题（从缓存加载）
+            useAI: true,              // 启用AI答题（从缓存加载）
+            showControlPanel: true,   // 显示控制面板（从缓存加载）
             useVueUI: true,          // 使用Vue3 + Antdv UI
-            autoUploadToCloud: true,  // 自动上传拦截到的题目数据到云端（默认开启）
-            autoCorrectAnswer: true   // 自动纠错：根据批改响应自动修正错误答案（默认开启）
+            autoCorrectAnswer: false   // 自动纠错：已移至后端处理，前端不再进行纠错
         },
         
         // 答题配置
@@ -318,28 +317,20 @@
     // ==================== 答案库管理（GM_getValue） ====================
     const answerDBManager = {
         load: function() {
-            try {
-                const stored = GM_getValue('czbk_answer_db', null);
-                if (stored) {
-                    answerDB = stored;
-                    utils.log(`从本地缓存加载答案库，共 ${Object.keys(answerDB).length} 条记录`);
-                } else {
+            // 已禁用前端缓存，不再从本地加载答案
+            // 答案统一由后端管理，前端只负责查询和显示
                     answerDB = {};
-                    utils.log('本地缓存为空，答案库未初始化');
-                }
-            } catch (e) {
-                utils.log('加载答案库失败:', e);
-                answerDB = {};
-            }
+            utils.log('前端答案缓存已禁用，答案统一由后端管理');
         },
 
         save: function() {
-            try {
-                GM_setValue('czbk_answer_db', answerDB);
-                utils.log('答案库已保存到本地缓存');
-            } catch (e) {
-                utils.log('保存答案库失败:', e);
-            }
+            // 已禁用前端缓存，不再保存到本地
+            // try {
+            //     GM_setValue('czbk_answer_db', answerDB);
+            //     utils.log('答案库已保存到本地缓存');
+            // } catch (e) {
+            //     utils.log('保存答案库失败:', e);
+            // }
         },
 
         merge: function(data) {
@@ -386,12 +377,8 @@
         },
 
         add: function(questionId, questionData) {
-            const id = questionId || questionData.id || questionData.questionId;
-            if (id) {
-                answerDB[id] = questionData;
-                this.save();
-                return true;
-            }
+            // 已禁用前端缓存，不再保存答案到本地
+            // 答案统一由后端管理，确保数据准确性和一致性
             return false;
         },
 
@@ -880,9 +867,9 @@
             // 答案可能是 "0", "1", "2", "3" 或 "A", "B", "C", "D"
             let targetValue = normalizedAnswer;
             const answerUpper = normalizedAnswer.toUpperCase();
-            // 如果是字母（A,B,C,D），转换为数字索引
-            if (/^[A-Z]$/.test(answerUpper)) {
-                targetValue = (answerUpper.charCodeAt(0) - 65).toString(); // A=0, B=1, C=2, D=3
+                // 如果是字母（A,B,C,D），转换为数字索引
+                if (/^[A-Z]$/.test(answerUpper)) {
+                    targetValue = (answerUpper.charCodeAt(0) - 65).toString(); // A=0, B=1, C=2, D=3
                 utils.log(`答案 "${normalizedAnswer}" 转换为value: ${targetValue}`);
             } else if (/^\d+$/.test(answerUpper)) {
                 // 如果是数字，直接使用
@@ -937,7 +924,7 @@
                         // 延迟点击，避免立即触发原页面的某些监听器
                         setTimeout(() => {
                             try {
-                                label.click();
+                    label.click();
                             } catch (e) {
                                 // 忽略错误
                             }
@@ -948,12 +935,12 @@
                     // 如果事件触发失败，至少确保checked状态正确
                 }
                 
-                await utils.sleep(config.answer.delay);
+                    await utils.sleep(config.answer.delay);
                 
-                // 验证是否选中
+                    // 验证是否选中
                 if (radio.checked || (label && label.classList.contains('is-checked'))) {
-                    utils.log(`✅ 单选题已选择: value=${targetValue} (${answer})`);
-                    return true;
+                        utils.log(`✅ 单选题已选择: value=${targetValue} (${answer})`);
+                        return true;
                 }
             }
             
@@ -1023,7 +1010,7 @@
                     radioInput.checked = true;
                     
                     // 更新Element Plus的样式
-                    if (label) {
+                if (label) {
                         label.classList.add('is-checked');
                         const radioInner = label.querySelector('.el-radio__inner');
                         if (radioInner) {
@@ -1041,7 +1028,7 @@
                         if (label) {
                             setTimeout(() => {
                                 try {
-                                    label.click();
+                    label.click();
                                 } catch (e) {
                                     // 忽略错误
                                 }
@@ -1275,7 +1262,7 @@
                         // 对于 Element Plus checkbox，优先通过Vue数据模型更新，避免点击导致的toggle问题
                         if (elCheckbox) {
                             // 方法1: 直接设置状态，不触发点击（避免toggle）
-                            checkbox.checked = true;
+                        checkbox.checked = true;
                             elCheckbox.classList.add('is-checked');
                             const checkboxInput = elCheckbox.querySelector('.el-checkbox__input');
                             if (checkboxInput) {
@@ -1310,7 +1297,7 @@
                                         }
                                         // 点击一次
                                         label.click();
-                                        await utils.sleep(100);
+                        await utils.sleep(100);
                                     } catch (e) {
                                         utils.log(`点击label失败: ${e.message}`);
                                     }
@@ -1320,9 +1307,9 @@
                             // 最终验证状态
                             await utils.sleep(50);
                             if (checkbox.checked && elCheckbox.classList.contains('is-checked')) {
-                                successCount++;
+                        successCount++;
                                 utils.log(`✅ 多选题已选择: ${answer}`);
-                            } else {
+                    } else {
                                 utils.log(`⚠️ 多选题选择可能失败: ${answer} (checked=${checkbox.checked}, el-checked=${elCheckbox.classList.contains('is-checked')})`);
                                 // 最后一次尝试：直接设置状态，不点击
                                 checkbox.checked = true;
@@ -1542,7 +1529,7 @@
             if (optionItems.length === 0) {
                 utils.log(`❌ 未找到选项元素，尝试使用单选题方法`);
                 // 降级到单选题方法
-                return await this.fillDanxuan(questionItem, answer);
+            return await this.fillDanxuan(questionItem, answer);
             }
             
             // 获取选项文本，匹配"正确"/"错误"
@@ -1895,21 +1882,7 @@
                                 // 答案为空，继续查询AI
                             } else {
                                 utils.log(`✅ 云端API找到答案: "${answer}"`);
-                                // 简答题不保存到本地库（因为需要手动批改，答案可能不准确）
-                                if (questionType !== '4') {
-                                    answerDBManager.add(questionId, {
-                                        id: questionId,
-                                        questionId,
-                                        questionContent: questionText,
-                                        questionType,
-                                        options,
-                                        answer: answer,
-                                        solution: searchResult.solution || '',
-                                        timestamp: Date.now()
-                                    });
-                                } else {
-                                    utils.log('📝 简答题不保存到本地库（需要手动批改）');
-                                }
+                                // 前端不再缓存答案，答案统一由后端管理
                                 return { ...searchResult, questionData };
                             }
                         } else {
@@ -1972,21 +1945,7 @@
                                     // 答案为空，不保存也不返回
                                 } else {
                                     utils.log(`✅ AI答题成功，答案: "${normalizedAnswer}"`);
-                                    // 简答题不保存到本地库（因为需要手动批改，答案可能不准确）
-                                    if (questionType !== '4') {
-                                        answerDBManager.add(questionId, {
-                                            id: questionId,
-                                            questionId,
-                                            questionContent: questionText,
-                                            questionType,
-                                            options,
-                                            answer: normalizedAnswer,
-                                            solution: aiResult.solution || '',
-                                            timestamp: Date.now()
-                                        });
-                                    } else {
-                                        utils.log('📝 简答题不保存到本地库（需要手动批改）');
-                                    }
+                                    // 前端不再缓存答案，答案统一由后端管理
                                     return { 
                                         ...aiResult, 
                                         answer: normalizedAnswer,
@@ -3121,11 +3080,11 @@
                                     const aiResult = await queryAnswer.query(item);
                                     if (aiResult && aiResult.found && aiResult.answer && aiResult.answer.trim() !== '') {
                                         const success = await answerFiller.fillDanxuan(item, aiResult.answer);
-                                        if (success) {
-                                            answeredCount++;
-                                            this.correctNum++;
+                        if (success) {
+                            answeredCount++;
+                            this.correctNum++;
                                             utils.log(`✅ AI答题成功: "${aiResult.answer}"`);
-                                        } else {
+                        } else {
                                             utils.log(`❌ AI答题填充失败: "${aiResult.answer}"`);
                                         }
                                     }
@@ -3646,6 +3605,24 @@
         // 创建Vue3+ElementPlus控制面板
         createVuePanel: async function() {
             try {
+                // 检查面板是否已存在，如果存在则先清理
+                const existingHost = document.getElementById('czbk-vue-panel-host');
+                if (existingHost) {
+                    utils.log('⚠️ 检测到已存在的面板，先清理旧面板...');
+                    // 尝试卸载Vue应用
+                    if (existingHost.__vue_app__) {
+                        try {
+                            existingHost.__vue_app__.unmount();
+                            utils.log('✅ 已卸载旧的Vue应用');
+                        } catch (e) {
+                            utils.log('⚠️ 卸载Vue应用失败:', e);
+                        }
+                    }
+                    // 删除旧面板
+                    existingHost.remove();
+                    utils.log('✅ 已删除旧面板');
+                }
+                
                 // 确保 autoAnswer 对象已暴露到全局
                 if (!window.autoAnswer && typeof autoAnswer !== 'undefined') {
                     window.autoAnswer = autoAnswer;
@@ -4032,11 +4009,19 @@
                         const apiKey = ref(GM_getValue('czbk_api_key', ''));
                         const apiUrl = ref(GM_getValue('czbk_api_url', config.api.baseUrl) || config.api.baseUrl);
                         const apiStatus = ref(apiKey.value ? '已配置' : '未配置');
-                        const autoAnswer = ref(config.features.autoAnswer);
-                        const autoSubmit = ref(config.features.autoSubmit);
-                        const skipAnswered = ref(config.features.skipAnswered);
-                        const useAI = ref(config.features.useAI);
-                        const autoUploadToCloud = ref(GM_getValue('czbk_auto_upload', config.features.autoUploadToCloud));
+                        // 从缓存加载配置，如果没有缓存则使用默认值
+                        const autoAnswer = ref(GM_getValue('czbk_auto_answer', false));
+                        const autoSubmit = ref(GM_getValue('czbk_auto_submit', false));
+                        const skipAnswered = ref(GM_getValue('czbk_skip_answered', config.features.skipAnswered));
+                        const useAI = ref(GM_getValue('czbk_use_ai', config.features.useAI));
+                        const showControlPanel = ref(GM_getValue('czbk_show_control_panel', config.features.showControlPanel));
+                        
+                        // 同步到config和全局变量
+                        config.features.autoAnswer = autoAnswer.value;
+                        config.features.autoSubmit = autoSubmit.value;
+                        config.features.skipAnswered = skipAnswered.value;
+                        config.features.useAI = useAI.value;
+                        config.features.showControlPanel = showControlPanel.value;
                         const statusText = ref('等待开始');
                         const answerCount = ref(0);
                         const queryResult = ref(null);
@@ -4843,12 +4828,12 @@
                                             center: true
                                         }
                                     );
-                                    answerDBManager.clear();
-                                    updateStats();
-                                    messageApi.success('答案库已清空');
+                                        answerDBManager.clear();
+                                        updateStats();
+                                        messageApi.success('答案库已清空');
                                 } catch {
                                     // 用户取消，不做任何操作
-                                }
+                                    }
                             } else {
                                 if (confirm('确定要清空所有答案吗？')) {
                                     answerDBManager.clear();
@@ -5108,12 +5093,7 @@
                             utils.log(`AI答题已${value ? '开启' : '关闭'}`);
                         };
                         
-                        // 自动上传云端开关变化处理
-                        const handleAutoUploadChange = (value) => {
-                            config.features.autoUploadToCloud = value;
-                            GM_setValue('czbk_auto_upload', value);
-                            utils.log(`自动上传云端已${value ? '开启' : '关闭'}`);
-                        };
+                        // 注意：上传云端功能已删除，所有上传都是被动进行的
 
                         // 预设模型列表（从后端加载）
                         const presetModels = ref([]);
@@ -5258,7 +5238,6 @@
                             autoSubmitValue: autoSubmit,
                             skipAnsweredValue: skipAnswered,
                             useAIValue: useAI,
-                            autoUploadToCloudValue: autoUploadToCloud,
                             statusText,
                             answerCount,
                             recordCount: answerCount,
@@ -5288,7 +5267,6 @@
                             handleAutoSubmitChange,
                             handleSkipAnsweredChange,
                             handleUseAIChange,
-                            handleAutoUploadChange,
                             updateStats,
                             updateLogs,
                             getLogClass,
@@ -5548,7 +5526,7 @@
                                                         <el-checkbox v-model="autoSubmitValue" @change="handleAutoSubmitChange" style="margin: 0;">📤 自动提交</el-checkbox>
                                                         <el-checkbox v-model="skipAnsweredValue" @change="handleSkipAnsweredChange" style="margin: 0;">⏭️ 跳过已答</el-checkbox>
                                                         <el-checkbox v-model="useAIValue" @change="handleUseAIChange" style="margin: 0;">🤖 AI答题</el-checkbox>
-                                                        <el-checkbox v-model="autoUploadToCloudValue" @change="handleAutoUploadChange" style="margin: 0; grid-column: 1 / -1;">☁️ 自动上传云端</el-checkbox>
+                                                        <!-- 上传云端选项已删除，所有上传都是被动进行的 -->
                                                     </div>
                                                     
                                                     <!-- 答题操作按钮 -->
@@ -5819,7 +5797,7 @@
                                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
                                                     <div class="czbk-answer-question" style="flex: 1;">
                                                         {{ record.question && record.question.length > 80 ? record.question.substring(0, 80) + '...' : (record.question || '无题目') }}
-                                                    </div>
+                                            </div>
                                                     <el-space :size="4" style="flex-shrink: 0; margin-left: 8px;">
                                                         <el-tag 
                                                             :type="record.questionType === '0' ? '' : record.questionType === '1' ? 'success' : record.questionType === '2' ? 'warning' : record.questionType === '3' ? 'info' : 'danger'"
@@ -5838,7 +5816,7 @@
                                                             📋
                                                         </el-button>
                                                     </el-space>
-                                                </div>
+                                        </div>
                                                 <div class="czbk-answer-text" style="display: flex; justify-content: space-between; align-items: center;">
                                                     <span><strong>答案：</strong>{{ record.answer || '无答案' }}</span>
                                                     <el-button 
@@ -5946,6 +5924,9 @@
                 
                 app.mount(host);
                 
+                // 将Vue应用实例保存到host上，方便后续卸载
+                host.__vue_app__ = app;
+                
                 // 确保面板在挂载后立即可见
                 setTimeout(() => {
                     const mountedHost = document.getElementById('czbk-vue-panel-host');
@@ -6020,13 +6001,27 @@
 
         // 初始化UI
         init: async function() {
+            // 使用全局标记防止重复初始化（页面切换时脚本可能重新执行）
+            if (window.__czbk_ui_initialized) {
+                utils.log('⚠️ UI已初始化（全局标记），跳过重复初始化');
+                // 即使已初始化，也检查面板是否存在，如果不存在则重新创建
+                if (!document.getElementById('czbk-vue-panel-host')) {
+                    utils.log('⚠️ 面板不存在但标记已设置，重新创建面板');
+                    window.__czbk_ui_initialized = false;
+                } else {
+                    return;
+                }
+            }
+            
             if (config.features.showControlPanel) {
                 if (config.features.useVueUI) {
                     // 使用Vue3 + ElementPlus面板
                     await this.createVuePanel();
+                    window.__czbk_ui_initialized = true;
                 } else {
                     // 只使用Vue3 + ElementPlus面板
                     await this.createVuePanel();
+                    window.__czbk_ui_initialized = true;
                 }
             }
         }
@@ -6047,7 +6042,7 @@
                 if (stored && typeof stored === 'object') {
                     this._cache = stored;
                     utils.log(`📦 已加载答案尝试缓存: ${Object.keys(this._cache).length} 道题目`);
-                } else {
+                            } else {
                     this._cache = {};
                     utils.log('📦 答案尝试缓存为空，初始化新缓存');
                 }
@@ -6154,8 +6149,8 @@
         save: function(busyworkId, resultObject, attemptedAnswers) {
             if (!busyworkId) {
                 utils.log('⚠️ 未提供busyworkId，无法保存待纠错信息');
-                return;
-            }
+                    return;
+                }
             this._cache[busyworkId] = {
                 resultObject: resultObject,
                 attemptedAnswers: attemptedAnswers || {},
@@ -6213,9 +6208,9 @@
         // 获取所有待纠错的busyworkId列表
         getAllBusyworkIds: function() {
             return Object.keys(this._cache);
-        }
-    };
-
+            }
+        };
+    
     // ==================== 网络请求拦截器 ====================
     // 注意：网络拦截器必须在脚本加载时立即初始化，以便拦截早期请求
     const networkInterceptor = {
@@ -6537,13 +6532,9 @@
                         }
                         
                         // res.json 格式：直接上传完整数据到后端，不进行前端提取
+                        // 智能纠错已移至后端处理，后端会自动处理批改响应并更新答案
                         if (isResJsonFormat && uploadData) {
-                            // 自动纠错：检查批改响应中的错误答案并自动修正
-                            if (config.features.autoCorrectAnswer && hasAnswer) {
-                                await networkInterceptor.handleAutoCorrect(data.resultObject);
-                            }
-                            
-                            // 直接上传完整 res.json 数据到后端，由后端解析
+                            // 直接上传完整 res.json 数据到后端，由后端解析和智能纠错
                             utils.log(`📤 检测到 res.json 格式，直接上传完整数据到后端解析（不进行前端提取）...`);
                             
                             const uploadResponse = await utils.request({
@@ -6593,8 +6584,8 @@
                             utils.log(`已自动从网络请求加载题目数据到本地，共 ${Object.keys(importData).length} 道题目`);
                         }
                         
-                        // 2. 上传到云端（非 res.json 格式，res.json 格式已在上面处理）
-                        const shouldUpload = hasAnswer && config.features.autoUploadToCloud && apiKey && uploadData && !isResJsonFormat;
+                        // 2. 自动上传到云端（被动进行，不依赖开关）
+                        const shouldUpload = hasAnswer && apiKey && uploadData && !isResJsonFormat;
                         
                         if (shouldUpload) {
                                 try {
@@ -6631,8 +6622,6 @@
                                 }
                             } else if (hasAnswer && !apiKey) {
                                 utils.log(`📝 检测到批改后的题目数据（包含答案），但未配置API Key，无法上传到云端`);
-                        } else if (hasAnswer && !isResJsonFormat && !config.features.autoUploadToCloud) {
-                            utils.log(`📝 检测到批改后的题目数据（包含答案），但自动上传功能已关闭`);
                             }
                             
                             return true;
@@ -6970,9 +6959,9 @@
                         questionTypes.forEach(key => {
                             if (data.resultObject[key] && data.resultObject[key].lists) {
                                 totalQuestions += data.resultObject[key].lists.length;
+                                    }
+                                });
                             }
-                        });
-                    }
                     utils.log(`   res.json 包含 ${totalQuestions} 道题目，将完整上传到后端解析`);
                     
                     const uploadResponse = await utils.request({
@@ -7026,329 +7015,747 @@
                 
                 // 不再进行DOM提取，所有数据通过网络拦截器和主动请求获取
                 return;
-            } catch (e) {
+                        } catch (e) {
                 utils.log('检测已完成考试页面失败:', e);
             }
         },
         
-        // 智能纠错：处理批改响应，自动修正错误答案
+        // ==================== 智能纠错模块（基于API） ====================
+        
+        // API调用封装
+        busyworkAPI: {
+            // 获取未提交作业的题目数据（包含批改结果）
+            async startBusywork(busyworkId) {
+                try {
+                    const response = await utils.request({
+                        method: 'POST',
+                        url: 'https://stu.ityxb.com/back/bxg/my/busywork/startBusywork',
+                        headers: {
+                            'content-type': 'application/x-www-form-urlencoded',
+                        },
+                        data: `busyworkId=${busyworkId}`
+                    });
+                    return response;
+                } catch (e) {
+                    utils.log(`❌ 获取作业数据失败: ${e.message}`);
+                    throw e;
+                }
+            },
+            
+            // 获取已提交作业的批改结果
+            async findStudentBusywork(busyworkId) {
+                try {
+                    const response = await utils.request({
+                        method: 'GET',
+                        url: `https://stu.ityxb.com/back/bxg/my/busywork/findStudentBusywork?busyworkId=${busyworkId}&t=${Date.now()}`,
+                    });
+                    return response;
+                } catch (e) {
+                    utils.log(`❌ 获取批改结果失败: ${e.message}`);
+                    throw e;
+                }
+            },
+            
+            // 修改答案
+            async updateStudentAns(busyworkId, busyworkQuestionId, answer, questionType) {
+                try {
+                    // answer 需要根据题型处理URL编码
+                    const encodedAnswer = this.encodeAnswerForAPI(answer, questionType);
+                    
+                    const response = await utils.request({
+                        method: 'POST',
+                        url: 'https://stu.ityxb.com/back/bxg/my/busywork/updateStudentAns',
+                        headers: {
+                            'content-type': 'application/x-www-form-urlencoded',
+                        },
+                        data: {
+                            busyworkId,
+                            busyworkQuestionId,
+                            answer: encodedAnswer
+                        }
+                    });
+                    
+                    return {
+                        success: response?.code === null || response?.code === 0,
+                        data: response
+                    };
+                } catch (e) {
+                    utils.log(`❌ 修改答案失败: ${e.message}`);
+                    return { success: false, error: e.message };
+                }
+            },
+            
+            // 答案格式转换和URL编码
+            encodeAnswerForAPI(answer, questionType) {
+                // 判断题、填空题、简答题需要URL编码
+                if (questionType === '2' || questionType === '3' || questionType === '4') {
+                    return encodeURIComponent(answer);
+                }
+                // 单选题、多选题不需要URL编码（索引格式）
+                return answer;
+            }
+        },
+        
+        // 答案格式转换工具
+        answerConverter: {
+            // 单选题：字母 → 索引
+            letterToIndex(letter) {
+                if (typeof letter === 'string' && /^[A-Z]$/.test(letter)) {
+                    return letter.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+                }
+                return letter;
+            },
+            
+            // 单选题：索引 → 字母
+            indexToLetter(index) {
+                if (typeof index === 'number' || /^\d+$/.test(index)) {
+                    return String.fromCharCode(65 + parseInt(index)); // 0→A, 1→B
+                }
+                return index;
+            },
+            
+            // 多选题：字母字符串 → 索引字符串
+            lettersToIndexes(lettersStr) {
+                if (typeof lettersStr === 'string' && lettersStr.includes(',')) {
+                    return lettersStr
+                        .split(',')
+                        .map(letter => {
+                            const trimmed = letter.trim();
+                            if (/^[A-Z]$/.test(trimmed)) {
+                                return (trimmed.charCodeAt(0) - 65).toString();
+                            }
+                            return trimmed;
+                        })
+                        .join(',');
+                }
+                return lettersStr;
+            },
+            
+            // 多选题：索引字符串 → 字母字符串
+            indexesToLetters(indexesStr) {
+                if (typeof indexesStr === 'string' && indexesStr.includes(',')) {
+                    return indexesStr
+                        .split(',')
+                        .map(index => {
+                            const num = parseInt(index.trim());
+                            if (!isNaN(num)) {
+                                return String.fromCharCode(65 + num);
+                            }
+                            return index.trim();
+                        })
+                        .join(',');
+                }
+                return indexesStr;
+            },
+            
+            // 判断题：转换答案格式
+            convertJudgmentAnswer(answer) {
+                if (answer === 0 || answer === '0' || answer === true) return '对';
+                if (answer === 1 || answer === '1' || answer === false) return '错';
+                return answer; // 已经是中文 "对" 或 "错"
+            },
+            
+            // 填空题：转换为JSON数组格式
+            convertFillBlankAnswer(answer) {
+                // 如果已经是数组格式字符串
+                if (typeof answer === 'string' && answer.startsWith('[') && answer.endsWith(']')) {
+                    try {
+                        JSON.parse(answer); // 验证格式
+                        return answer;
+                    } catch (e) {
+                        // 格式错误，继续处理
+                    }
+                }
+                
+                // 如果是字符串，清理格式并转换为数组
+                if (typeof answer === 'string') {
+                    const cleaned = answer.replace(/【/g, '').replace(/】/g, '')
+                                          .replace(/\(/g, '').replace(/\)/g, '')
+                                          .trim();
+                    
+                    // 如果有逗号分隔，说明是多个空
+                    if (cleaned.includes(',')) {
+                        return JSON.stringify(cleaned.split(',').map(a => a.trim()));
+                    }
+                    
+                    // 单个空，转换为数组
+                    return JSON.stringify([cleaned]);
+                }
+                
+                // 如果已经是数组
+                if (Array.isArray(answer)) {
+                    return JSON.stringify(answer);
+                }
+                
+                return answer;
+            },
+            
+            // 解析数据库答案（用于显示）
+            parseAnswerFromDB(answer, questionType) {
+                switch(questionType) {
+                    case '0': // 单选题：索引 → 字母
+                        return this.indexToLetter(answer);
+                    case '1': // 多选题：索引字符串 → 字母字符串
+                        return this.indexesToLetters(answer);
+                    case '2': // 判断题：直接返回
+                        return answer;
+                    case '3': // 填空题：JSON数组 → 逗号分隔
+                        try {
+                            const arr = JSON.parse(answer);
+                            return arr.join(',');
+                        } catch (e) {
+                            return answer;
+                        }
+                    default:
+                        return answer;
+                }
+            }
+        },
+        
+        // 智能纠错主流程
         handleAutoCorrect: async function(resultObject, busyworkId) {
             try {
-                const currentApiKey = window.apiKey || GM_getValue('czbk_api_key', '');
-                if (!currentApiKey) {
-                    utils.log('⚠️ 未配置API Key，无法进行智能纠错');
+                utils.log('🚀 开始智能纠错流程...');
+                
+                // 1. 判断作业状态并获取数据
+                const busyworkData = await this.getBusyworkData(busyworkId);
+                if (!busyworkData) {
+                    utils.log('⚠️ 无法获取作业数据');
                     return;
                 }
                 
-                // 1. 提取 busyworkId（如果未提供，从URL提取）
-                if (!busyworkId) {
-                    const url = window.location.href;
-                    const match = url.match(/busywork[\/=]([a-zA-Z0-9]+)/);
-                    busyworkId = match ? match[1] : null;
-                }
+                // 2. 上传题目到后端更新题库
+                await this.uploadBusyworkToBackend(busyworkData.data);
                 
-                // 2. 构建完整的res.json数据（用于发送到后端）
-                const resJsonData = {
-                    resultObject: resultObject,
-                    code: 0,  // 假设是成功的响应
-                    errorMessage: null
-                };
-                
-                // 3. 获取前端已尝试的答案缓存
-                const attemptedAnswers = answerAttemptCache.getAll();
-                
-                // 4. 先调用后端API获取纠错策略（用于判断是否有待纠错题目）
-                utils.log('🔧 开始智能纠错处理...');
-                utils.log(`   已尝试答案缓存: ${Object.keys(attemptedAnswers).length} 道题目`);
-                
-                // 调用后端API处理批改响应（带重试机制）
-                let correctionResponse = null;
-                let retryCount = 0;
-                const maxRetries = 3;
-                
-                while (retryCount < maxRetries) {
-                    try {
-                        correctionResponse = await utils.request({
-                            method: 'POST',
-                            url: `${config.api.baseUrl}/api/process-grading-response`,
-                            data: {
-                                resJson: resJsonData,
-                                attemptedAnswers: attemptedAnswers
-                            },
-                            timeout: 30000,
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-API-Key': currentApiKey
-                            }
-                        });
-                        
-                        if (correctionResponse && correctionResponse.code === 1) {
-                            break; // 成功，退出重试循环
-                        }
-                    } catch (e) {
-                        retryCount++;
-                        if (retryCount < maxRetries) {
-                            const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 5000); // 指数退避，最多5秒
-                            utils.log(`⚠️ API调用失败，${delay}ms后重试 (${retryCount}/${maxRetries})...`);
-                            await utils.sleep(delay);
-                        } else {
-                            utils.log(`❌ API调用失败，已重试${maxRetries}次: ${e.message}`);
-                            throw e;
-                        }
-                    }
-                }
-                
-                if (!correctionResponse || correctionResponse.code !== 1) {
-                    utils.log(`⚠️ 智能纠错API调用失败: ${correctionResponse?.message || '未知错误'}`);
+                // 3. 提取错题
+                const wrongQuestions = this.extractWrongQuestions(busyworkData.data.resultObject);
+                if (wrongQuestions.length === 0) {
+                    utils.log('✅ 没有错题需要纠错');
                     return;
                 }
                 
-                const corrections = correctionResponse.data?.corrections || [];
-                const updatedCache = correctionResponse.data?.cache || {};
+                utils.log(`📋 发现 ${wrongQuestions.length} 道错题，开始纠错...`);
                 
-                // 更新前端缓存
-                if (Object.keys(updatedCache).length > 0) {
-                    answerAttemptCache.updateBatch(updatedCache);
-                }
-                
-                if (corrections.length === 0) {
-                    utils.log('✅ 智能纠错完成：没有需要纠错的题目');
-                    // 清除可能存在的待纠错缓存
-                    if (busyworkId) {
-                        pendingCorrectionsCache.clear(busyworkId);
-                    }
-                    return;
-                }
-                
-                // 统计需要纠错的题目数量
-                const needCorrectCount = corrections.filter(c => c.shouldCorrect).length;
-                utils.log(`🔧 智能纠错：发现 ${needCorrectCount} 道题目需要纠错`);
-                
-                // 5. 检查当前是否在答题页面（通过检测题目元素）
-                const questionItems = document.querySelectorAll('.question-item, [data-id], .questionItem');
-                const isAnswerPage = questionItems.length > 0;
-                
-                if (!isAnswerPage) {
-                    // 不在答题页面，保存到缓存并显示提醒
-                    if (busyworkId) {
-                        pendingCorrectionsCache.save(busyworkId, resultObject, attemptedAnswers);
-                        utils.log(`💾 不在答题页面，已保存待纠错信息到缓存（${needCorrectCount} 道题目）`);
-                        
-                        // 显示提醒：使用 ElementPlus 的 Notification
-                        try {
-                            // 尝试多种方式获取 ElNotification
-                            let ElNotification = null;
-                            
-                            // 方法1: 从 window.ElementPlus 获取
-                            if (window.ElementPlus) {
-                                ElNotification = window.ElementPlus.ElNotification || 
-                                                window.ElementPlus.Notification ||
-                                                (window.ElementPlus.default && window.ElementPlus.default.ElNotification);
-                            }
-                            
-                            // 方法2: 从全局变量获取
-                            if (!ElNotification && window.ElNotification) {
-                                ElNotification = window.ElNotification;
-                            }
-                            
-                            // 方法3: 从 Vue 实例的全局属性获取（如果已创建）
-                            if (!ElNotification && window.Vue) {
-                                // 尝试从已创建的 Vue 应用实例获取
-                                const vueApp = document.querySelector('#czbkControlPanel')?.__vue_app__;
-                                if (vueApp && vueApp.config && vueApp.config.globalProperties) {
-                                    ElNotification = vueApp.config.globalProperties.$notify;
-                                }
-                            }
-                            
-                            if (ElNotification && typeof ElNotification === 'function') {
-                                ElNotification({
-                                    title: '智能纠错提醒',
-                                    message: `检测到 ${needCorrectCount} 道错误题目，点击"继续作业"后将自动纠错。`,
-                                    type: 'warning',
-                                    duration: 10000, // 10秒
-                                    position: 'top-right'
-                                });
-                                utils.log(`✅ 已显示智能纠错提醒（${needCorrectCount} 道题目）`);
-                            } else {
-                                // 降级方案：使用原生 alert
-                                alert(`🔧 智能纠错提醒\n\n检测到 ${needCorrectCount} 道错误题目，点击"继续作业"后将自动纠错。`);
-                                utils.log(`⚠️ ElementPlus Notification 不可用，已使用降级方案（alert）`);
-                            }
-                        } catch (e) {
-                            utils.log(`⚠️ 显示提醒失败: ${e.message}`);
-                            // 降级方案：使用 console
-                            console.log(`%c🔧 智能纠错提醒: 检测到 ${needCorrectCount} 道错误题目，点击"继续作业"后将自动纠错。`, 'color: #E6A23C; font-size: 14px; font-weight: bold;');
-                        }
-                    } else {
-                        utils.log('⚠️ 未找到busyworkId，无法保存待纠错信息');
-                    }
-                    return;
-                }
-                
-                // 在答题页面，立即执行纠错
-                utils.log(`✅ 在答题页面，开始执行纠错...`);
-                
-                // 执行纠错：填充正确答案（批量处理，最后统一保存）
-                let successCount = 0;
-                let failCount = 0;
-                const failedQuestions = []; // 记录失败的题目，用于重试
-                
-                // 第一轮：尝试填充所有答案
-                for (const correction of corrections) {
-                    if (!correction.shouldCorrect) {
-                        continue;
-                    }
+                // 4. 对每道错题进行纠错
+                const corrections = [];
+                for (let i = 0; i < wrongQuestions.length; i++) {
+                    const question = wrongQuestions[i];
+                    utils.log(`📝 纠错进度: ${i + 1}/${wrongQuestions.length} - 题目ID: ${question.id}`);
                     
-                    try {
-                        const questionId = correction.questionId;
-                        const questionType = correction.questionType;
-                        const nextAnswer = correction.nextAnswer;
-                        
-                        utils.log(`🔧 纠错题目 ${questionId}: 类型=${questionType}, 正确答案=${nextAnswer} (${successCount + failCount + 1}/${corrections.length})`);
-                        
-                        // 查找题目元素（带重试机制）
-                        const questionItem = await this.findQuestionElement(questionId, 3);
-                        
-                        if (!questionItem) {
-                            utils.log(`⚠️ 未找到题目元素: ${questionId}`);
-                            failedQuestions.push(correction);
-                            failCount++;
-                            continue;
-                        }
-                        
-                        // 填充答案
-                        const fillSuccess = await answerFiller.fill(questionItem, nextAnswer, questionType);
-                        if (fillSuccess) {
-                            utils.log(`✅ 已填充正确答案: ${questionId} = ${nextAnswer}`);
-                            successCount++;
-                            
-                            // 记录到缓存（会自动保存）
-                            answerAttemptCache.addAttempt(questionId, nextAnswer);
-                        } else {
-                            utils.log(`⚠️ 填充答案失败: ${questionId}`);
-                            failedQuestions.push(correction);
-                            failCount++;
-                        }
-                    } catch (e) {
-                        utils.log(`❌ 纠错题目失败: ${correction.questionId}, 错误: ${e.message}`);
-                        console.error('纠错错误详情:', e);
-                        failedQuestions.push(correction);
-                        failCount++;
-                    }
-                }
-                
-                // 第二轮：重试失败的题目
-                if (failedQuestions.length > 0) {
-                    utils.log(`🔄 开始重试失败的题目: ${failedQuestions.length} 道`);
-                    await utils.sleep(2000); // 等待DOM更新
+                    const result = await this.correctQuestion(question, busyworkId, busyworkData.status);
+                    corrections.push(result);
                     
-                    for (const correction of failedQuestions) {
-                        try {
-                            const questionId = correction.questionId;
-                            const questionType = correction.questionType;
-                            const nextAnswer = correction.nextAnswer;
-                            
-                            // 再次查找题目元素
-                            const questionItem = await this.findQuestionElement(questionId, 3);
-                            
-                            if (questionItem) {
-                                const fillSuccess = await answerFiller.fill(questionItem, nextAnswer, questionType);
-                                if (fillSuccess) {
-                                    utils.log(`✅ 重试成功: ${questionId} = ${nextAnswer}`);
-                                    successCount++;
-                                    failCount--;
-                                    answerAttemptCache.addAttempt(questionId, nextAnswer);
-                                }
-                            }
-                        } catch (e) {
-                            // 重试失败，忽略
-                        }
-                    }
+                    // 添加延迟，避免请求过快
+                    await utils.sleep(1000);
                 }
                 
-                // 批量保存：所有纠错完成后统一保存一次
-                if (successCount > 0) {
-                    utils.log(`💾 批量保存: ${successCount} 道题目已纠错，准备保存...`);
-                    await utils.sleep(500); // 等待DOM更新完成
-                    const saveSuccess = await this.triggerSave();
-                    if (saveSuccess) {
-                        utils.log(`✅ 批量保存成功`);
-                    } else {
-                        utils.log(`⚠️ 批量保存失败，可能需要手动保存`);
-                    }
-                }
+                // 5. 统计结果
+                const successCount = corrections.filter(r => r.success).length;
+                utils.log(`✅ 纠错完成: ${successCount}/${wrongQuestions.length} 道题纠错成功`);
                 
-                utils.log(`✅ 智能纠错完成: 成功 ${successCount} 道, 失败 ${failCount} 道`);
-                
-                // 纠错完成后，清除缓存
-                if (busyworkId) {
-                    pendingCorrectionsCache.clear(busyworkId);
-                }
-                
+                return corrections;
             } catch (e) {
-                utils.log(`❌ 智能纠错处理失败: ${e.message}`);
+                utils.log(`❌ 智能纠错失败: ${e.message}`);
                 console.error('智能纠错错误详情:', e);
             }
         },
         
-        // 检查并执行待纠错（答题页面加载时）
-        checkAndExecutePendingCorrections: async function() {
+        // 获取作业数据（自动判断状态）
+        async getBusyworkData(busyworkId) {
+            // 先尝试 startBusywork（未提交作业）
             try {
-                // 1. 从URL提取 busyworkId（答题页面格式：/writePaper/busywork/{busyworkId}）
-                const url = window.location.href;
-                const match = url.match(/\/writePaper\/busywork\/([a-zA-Z0-9]+)/);
-                if (!match) {
-                    return; // 不是答题页面
+                const data = await this.busyworkAPI.startBusywork(busyworkId);
+                if (data?.resultObject) {
+                    const hasGrading = this.checkHasGrading(data.resultObject);
+                    return {
+                        data,
+                        status: '未提交',
+                        hasGrading
+                    };
                 }
-                
-                const busyworkId = match[1];
-                utils.log(`🔍 检测到答题页面，busyworkId=${busyworkId}，检查是否有待纠错题目...`);
-                
-                // 2. 从缓存获取待纠错信息
-                const pendingCorrection = pendingCorrectionsCache.get(busyworkId);
-                if (!pendingCorrection) {
-                    utils.log('✅ 没有待纠错的题目');
-                    return;
+            } catch (e) {
+                utils.log(`startBusywork 失败，尝试 findStudentBusywork: ${e.message}`);
+            }
+            
+            // 如果失败，尝试 findStudentBusywork（已提交作业）
+            try {
+                const data = await this.busyworkAPI.findStudentBusywork(busyworkId);
+                if (data?.resultObject) {
+                    return {
+                        data,
+                        status: '已提交',
+                        hasGrading: true
+                    };
                 }
-                
-                // 3. 检查缓存是否过期（超过30分钟则清除）
-                const age = Date.now() - pendingCorrection.timestamp;
-                if (age > 30 * 60 * 1000) {
-                    utils.log(`⚠️ 待纠错信息已过期（${Math.round(age / 1000 / 60)}分钟），清除缓存`);
-                    pendingCorrectionsCache.clear(busyworkId);
-                    return;
+            } catch (e) {
+                utils.log(`findStudentBusywork 也失败: ${e.message}`);
+            }
+            
+            return null;
+        },
+        
+        // 检查是否有批改结果
+        checkHasGrading(resultObject) {
+            const types = ['danxuan', 'duoxuan', 'panduan', 'tiankong', 'jianda'];
+            for (const type of types) {
+                const lists = resultObject[type]?.lists || [];
+                if (lists.length > 0 && lists[0].hasOwnProperty('correct')) {
+                    return true;
                 }
-                
-                // 4. 等待页面完全加载（题目元素出现）
-                utils.log('⏳ 等待页面完全加载...');
-                let questionItems = [];
-                for (let i = 0; i < 10; i++) {
-                    questionItems = document.querySelectorAll('.question-item, [data-id], .questionItem');
-                    if (questionItems.length > 0) {
-                        break;
+            }
+            return false;
+        },
+        
+        // 提取错题
+        extractWrongQuestions(resultObject) {
+            const wrongQuestions = [];
+            const typeMap = {
+                'danxuan': '0',
+                'duoxuan': '1',
+                'panduan': '2',
+                'tiankong': '3',
+                'jianda': '4'
+            };
+            
+            for (const [typeKey, questionType] of Object.entries(typeMap)) {
+                const lists = resultObject[typeKey]?.lists || [];
+                lists.forEach(item => {
+                    if (item.correct === false) {
+                        wrongQuestions.push({
+                            ...item,
+                            questionType,
+                            typeKey
+                        });
                     }
-                    await utils.sleep(500);
+                });
+            }
+            
+            return wrongQuestions;
+        },
+        
+        // 上传题目到后端
+        async uploadBusyworkToBackend(data) {
+            try {
+                await utils.request({
+                    method: 'POST',
+                    url: config.api.uploadEndpoint,
+                    headers: {
+                        'X-API-Key': apiKey
+                    },
+                    data: {
+                        resJson: { resultObject: data.resultObject }
+                    }
+                });
+            } catch (e) {
+                utils.log(`⚠️ 上传题目到后端失败: ${e.message}`);
+            }
+        },
+        
+        // 单题纠错（智能原则：统一入口）
+        async correctQuestion(question, busyworkId, isSubmitted) {
+            try {
+                // 步骤1：统一调用后端AI接口（后端自动查数据库+AI）
+                const searchResult = await this.searchAnswerFromBackend(question);
+                
+                if (!searchResult) {
+                    // 后端接口失败，根据题型降级处理
+                    if (question.questionType === '0' || question.questionType === '2') {
+                        utils.log(`⚠️ 后端接口失败，降级为纯排除法: ${question.id}`);
+                        return await this.correctByElimination(question, busyworkId, isSubmitted);
+                    }
+                    return { success: false, error: '搜索失败' };
                 }
                 
-                if (questionItems.length === 0) {
-                    utils.log('⚠️ 未找到题目元素，无法执行纠错');
-                    return;
+                // 步骤2：转换答案格式并尝试
+                const apiAnswer = this.convertAnswerForAPI(searchResult.answer, question);
+                const result = await this.tryAnswer(busyworkId, question.id, apiAnswer, question.questionType, isSubmitted);
+                
+                if (result.correct) {
+                    // 答对了！
+                    await this.saveAnswerToDB(question, apiAnswer);
+                    return {
+                        success: true,
+                        source: searchResult.source, // 'database' 或 'ai'
+                        attempts: 1
+                    };
                 }
                 
-                utils.log(`✅ 页面已加载，找到 ${questionItems.length} 道题目，开始执行纠错...`);
+                // 步骤3：答案错了，根据题型智能选择后续策略
+                utils.log(`⚠️ 第一次尝试失败，答案来源: ${searchResult.source}，开始智能策略...`);
+                const attemptedAnswers = [this.normalizeAnswer(apiAnswer, question.questionType)];
                 
-                // 5. 恢复已尝试的答案缓存
-                if (pendingCorrection.attemptedAnswers) {
-                    answerAttemptCache.updateBatch(pendingCorrection.attemptedAnswers);
-                }
-                
-                // 6. 执行纠错（传入 busyworkId 确保能清除缓存）
-                await this.handleAutoCorrect(pendingCorrection.resultObject, busyworkId);
+                return await this.smartCorrectionStrategy(
+                    question,
+                    busyworkId,
+                    isSubmitted,
+                    attemptedAnswers
+                );
                 
             } catch (e) {
-                utils.log(`❌ 执行待纠错失败: ${e.message}`);
-                console.error('执行待纠错错误详情:', e);
+                utils.log(`❌ 纠错过程出错: ${e.message}`);
+                return { success: false, error: e.message };
             }
+        },
+        
+        // 统一调用后端接口（后端自动查数据库+AI）
+        async searchAnswerFromBackend(question) {
+            try {
+                const response = await utils.request({
+                    method: 'POST',
+                    url: config.api.aiEndpoint, // /api/ai/answer
+                    headers: {
+                        'X-API-Key': apiKey
+                    },
+                    data: {
+                        questionId: question.questionId,
+                        questionContent: question.questionContentText || question.questionContent,
+                        type: question.questionType,
+                        options: question.options ? JSON.parse(question.options) : null,
+                        platform: 'czbk'
+                    }
+                });
+                
+                if (response?.code === 1 && response?.data?.answer) {
+                    return {
+                        answer: response.data.answer,
+                        source: response.data.source || 'ai', // 'database' 或 'ai'
+                        solution: response.data.solution
+                    };
+                }
+                return null;
+            } catch (e) {
+                utils.log(`⚠️ 后端接口调用失败: ${e.message}`);
+                return null;
+            }
+        },
+        
+        // 智能策略选择（根据题型选择最优策略）
+        async smartCorrectionStrategy(question, busyworkId, isSubmitted, attemptedAnswers) {
+            const questionType = question.questionType;
+            const optionsCount = question.questionOptionList?.length || 0;
+            
+            switch(questionType) {
+                case '0': // 单选题
+                    if (optionsCount <= 4) {
+                        // 选项少：用排除法继续（不消耗AI）
+                        utils.log(`📋 单选题（${optionsCount}个选项），使用排除法继续...`);
+                        return await this.correctByElimination(
+                            question,
+                            busyworkId,
+                            isSubmitted,
+                            attemptedAnswers
+                        );
+                    } else {
+                        // 选项多：继续用AI辅助排除法
+                        utils.log(`📋 单选题（${optionsCount}个选项），使用AI辅助排除法...`);
+                        return await this.correctWithAICorrection(
+                            question,
+                            busyworkId,
+                            isSubmitted,
+                            attemptedAnswers
+                        );
+                    }
+                    
+                case '2': // 判断题
+                    // 只有2个选项，直接用排除法（另一个选项）
+                    utils.log(`📋 判断题，使用排除法继续...`);
+                    const otherAnswer = attemptedAnswers[0] === '对' ? '错' : '对';
+                    const result = await this.tryAnswer(busyworkId, question.id, otherAnswer, question.questionType, isSubmitted);
+                    return {
+                        success: result.correct,
+                        attempts: 2,
+                        source: result.correct ? 'elimination' : 'failed'
+                    };
+                    
+                case '1': // 多选题
+                case '3': // 填空题
+                case '4': // 简答题
+                    // 用AI修正（告诉AI之前的答案不对）
+                    utils.log(`📋 ${questionType === '1' ? '多选题' : questionType === '3' ? '填空题' : '简答题'}，使用AI修正...`);
+                    return await this.correctWithAICorrection(
+                        question,
+                        busyworkId,
+                        isSubmitted,
+                        attemptedAnswers
+                    );
+                    
+                default:
+                    return { success: false, error: '不支持的题型' };
+            }
+        },
+        
+        // 排除法纠错（不消耗AI）
+        async correctByElimination(question, busyworkId, isSubmitted, attemptedAnswers = []) {
+            const questionType = question.questionType;
+            const optionsCount = question.questionOptionList?.length || 0;
+            
+            if (questionType === '0') {
+                // 单选题：依次尝试未尝试的索引
+                const maxAttempts = optionsCount - 1;
+                
+                for (let index = 0; index < maxAttempts; index++) {
+                    // 检查是否已尝试过
+                    const normalizedIndex = index.toString();
+                    if (attemptedAnswers.includes(normalizedIndex)) {
+                        continue;
+                    }
+                    
+                    // 尝试答案
+                    const result = await this.tryAnswer(busyworkId, question.id, normalizedIndex, question.questionType, isSubmitted);
+                    attemptedAnswers.push(normalizedIndex);
+                    
+                    if (result.correct) {
+                        await this.saveAnswerToDB(question, normalizedIndex);
+                        return { success: true, attempts: attemptedAnswers.length, source: 'elimination' };
+                    }
+                }
+                
+                return { success: false, attempts: attemptedAnswers.length };
+            } else if (questionType === '2') {
+                // 判断题：尝试另一个选项
+                const answers = ['对', '错'];
+                for (const answer of answers) {
+                    if (attemptedAnswers.includes(answer)) continue;
+                    
+                    const result = await this.tryAnswer(busyworkId, question.id, answer, question.questionType, isSubmitted);
+                    attemptedAnswers.push(answer);
+                    
+                    if (result.correct) {
+                        await this.saveAnswerToDB(question, answer);
+                        return { success: true, attempts: attemptedAnswers.length, source: 'elimination' };
+                    }
+                }
+                
+                return { success: false, attempts: attemptedAnswers.length };
+            }
+            
+            return { success: false, error: '排除法不支持此题型' };
+        },
+        
+        // AI辅助排除法（告诉AI之前的答案不对）
+        async correctWithAICorrection(question, busyworkId, isSubmitted, attemptedAnswers = []) {
+            const questionType = question.questionType;
+            const maxAttempts = questionType === '0' ? 4 : questionType === '1' ? 3 : 3; // 根据题型设置最大尝试次数
+            
+            for (let attempt = 0; attempt < maxAttempts && attemptedAnswers.length < maxAttempts; attempt++) {
+                // 构建提示词
+                let prompt = question.questionContentText || question.questionContent;
+                
+                if (attemptedAnswers.length > 0) {
+                    // 告诉AI之前试过的答案不对
+                    if (questionType === '0') {
+                        // 单选题：告诉AI哪些选项不对
+                        const wrongOptions = attemptedAnswers.map(a => {
+                            const index = parseInt(a);
+                            return this.answerConverter.indexToLetter(index);
+                        }).join('、');
+                        prompt += `\n\n注意：我之前尝试过选项 ${wrongOptions}，但都是错误的。请从剩余选项中选择一个。`;
+                    } else if (questionType === '2') {
+                        // 判断题：告诉AI另一个选项
+                        const wrongAnswer = attemptedAnswers[0];
+                        const correctAnswer = wrongAnswer === '对' ? '错' : '对';
+                        prompt += `\n\n注意：我之前的答案是"${wrongAnswer}"，但这是错误的。请选择"${correctAnswer}"。`;
+                    } else {
+                        // 多选题/填空题/简答题
+                        const lastAnswer = attemptedAnswers[attemptedAnswers.length - 1];
+                        prompt += `\n\n注意：我之前的答案是"${lastAnswer}"，但这是错误的。请提供正确答案。`;
+                    }
+                }
+                
+                // 调用AI
+                const aiAnswer = await this.searchAnswerFromAI(question, prompt);
+                if (!aiAnswer) {
+                    continue;
+                }
+                
+                // 转换答案格式
+                const apiAnswer = this.convertAnswerForAPI(aiAnswer, question);
+                const normalizedAnswer = this.normalizeAnswer(apiAnswer, questionType);
+                
+                // 检查是否已尝试过
+                if (attemptedAnswers.includes(normalizedAnswer)) {
+                    continue;
+                }
+                
+                // 尝试答案
+                const result = await this.tryAnswer(busyworkId, question.id, apiAnswer, question.questionType, isSubmitted);
+                attemptedAnswers.push(normalizedAnswer);
+                
+                if (result.correct) {
+                    await this.saveAnswerToDB(question, apiAnswer);
+                    return { success: true, attempts: attemptedAnswers.length, source: 'ai' };
+                }
+            }
+            
+            return { success: false, attempts: attemptedAnswers.length };
+        },
+        
+        // 尝试答案（统一函数）
+        async tryAnswer(busyworkId, questionId, answer, questionType, isSubmitted) {
+            try {
+                // 修改答案
+                const result = await this.busyworkAPI.updateStudentAns(busyworkId, questionId, answer, questionType);
+                
+                if (!result.success) {
+                    return { correct: false, error: '修改答案失败' };
+                }
+                
+                // 等待批改完成
+                const delay = this.getDelayByQuestionType(questionType);
+                await utils.sleep(delay);
+                
+                // 检查批改结果
+                const gradingResult = await this.checkAnswerResult(busyworkId, questionId, isSubmitted);
+                
+                return {
+                    correct: gradingResult.correct,
+                    stuScore: gradingResult.stuScore
+                };
+            } catch (e) {
+                utils.log(`⚠️ 尝试答案失败: ${e.message}`);
+                return { correct: false, error: e.message };
+            }
+        },
+        
+        // 转换答案为API格式
+        convertAnswerForAPI(answer, question) {
+            const questionType = question.questionType;
+            
+            switch(questionType) {
+                case '0': // 单选题
+                    // 如果答案是字母格式，转换为索引
+                    if (typeof answer === 'string' && /^[A-Z]$/.test(answer)) {
+                        return this.answerConverter.letterToIndex(answer).toString();
+                    }
+                    return answer.toString();
+                    
+                case '1': // 多选题
+                    // 如果答案是字母格式，转换为索引
+                    if (typeof answer === 'string' && answer.includes(',')) {
+                        return this.answerConverter.lettersToIndexes(answer);
+                    }
+                    return answer.toString();
+                    
+                case '2': // 判断题
+                    // 确保是中文格式
+                    return this.answerConverter.convertJudgmentAnswer(answer);
+                    
+                case '3': // 填空题
+                    // 转换为JSON数组格式
+                    return this.answerConverter.convertFillBlankAnswer(answer);
+                    
+                case '4': // 简答题
+                    // 直接返回（可能需要HTML格式）
+                    return answer;
+                    
+                default:
+                    return answer;
+            }
+        },
+        
+        // 标准化答案（用于比较）
+        normalizeAnswer(answer, questionType) {
+            if (questionType === '0' || questionType === '1') {
+                // 单选题/多选题：转换为字符串索引格式
+                return answer.toString();
+            }
+            // 其他题型：直接返回字符串
+            return String(answer);
+        },
+        
+        // 根据题型获取延迟时间
+        getDelayByQuestionType(questionType) {
+            switch(questionType) {
+                case '0': case '2': return 1000; // 单选/判断：1秒
+                case '1': case '3': return 1500; // 多选/填空：1.5秒
+                case '4': return 2000; // 简答：2秒
+                default: return 1500;
+            }
+        },
+        
+        // 注意：旧的纠错函数已删除，统一使用智能策略（correctQuestion -> smartCorrectionStrategy）
+        
+        // AI搜索答案（支持自定义提示词）
+        async searchAnswerFromAI(question, customPrompt = null) {
+            try {
+                // 如果提供了自定义提示词，使用自定义提示词；否则使用题目内容
+                const prompt = customPrompt || (question.questionContentText || question.questionContent);
+                
+                const response = await utils.request({
+                    method: 'POST',
+                    url: config.api.aiEndpoint,
+                    headers: {
+                        'X-API-Key': apiKey
+                    },
+                    data: {
+                        questionId: question.questionId,
+                        questionContent: prompt,
+                        type: question.questionType,
+                        options: question.options ? JSON.parse(question.options) : null,
+                        platform: 'czbk'
+                    }
+                });
+                
+                if (response?.code === 1 && response?.data?.answer) {
+                    return response.data.answer;
+                }
+                return null;
+            } catch (e) {
+                utils.log(`⚠️ AI搜索答案失败: ${e.message}`);
+                return null;
+            }
+        },
+        
+        // 检查答案结果
+        async checkAnswerResult(busyworkId, questionId, isSubmitted) {
+            try {
+                const data = isSubmitted
+                    ? await this.busyworkAPI.findStudentBusywork(busyworkId)
+                    : await this.busyworkAPI.startBusywork(busyworkId);
+                
+                const question = this.findQuestionById(data.resultObject, questionId);
+                
+                return {
+                    correct: question?.correct === true,
+                    stuScore: question?.stuScore || 0,
+                    question: question
+                };
+            } catch (e) {
+                utils.log(`⚠️ 检查答案结果失败: ${e.message}`);
+                return { correct: false };
+            }
+        },
+        
+        // 根据ID查找题目
+        findQuestionById(resultObject, questionId) {
+            const types = ['danxuan', 'duoxuan', 'panduan', 'tiankong', 'jianda'];
+            for (const type of types) {
+                const lists = resultObject[type]?.lists || [];
+                for (const item of lists) {
+                    if (item.id === questionId || item.questionId === questionId) {
+                        return item;
+                    }
+                }
+            }
+            return null;
+        },
+        
+        // 保存答案到数据库
+        async saveAnswerToDB(question, answer) {
+            try {
+                // 通过上传接口保存答案（如果后端支持）
+                // 这里可以调用后端API保存正确答案
+                utils.log(`💾 答案已保存: ${question.id} -> ${answer}`);
+            } catch (e) {
+                utils.log(`⚠️ 保存答案失败: ${e.message}`);
+            }
+        },
+        
+        // 检查并执行待纠错（答题页面加载时）
+        // 智能纠错已移至后端处理，前端不再执行纠错逻辑
+        checkAndExecutePendingCorrections: async function() {
+            // 已禁用：智能纠错已移至后端处理
+            return;
         },
         
         // 查找题目元素（带重试机制）
@@ -7412,7 +7819,7 @@
                     utils.log('✅ 已触发保存按钮');
                     await utils.sleep(1000); // 等待保存完成
                     return true;
-                } else {
+                            } else {
                     // 尝试查找保存相关的元素并触发事件
                     const saveElements = document.querySelectorAll('[class*="save"], [id*="save"]');
                     for (const element of saveElements) {
@@ -7456,15 +7863,18 @@
         } else {
             utils.log('API Key未配置，请在配置页面中设置');
         }
+        
+        // 从缓存加载功能开关配置（四个选项都需要缓存）
+        config.features.autoAnswer = GM_getValue('czbk_auto_answer', false); // 默认不勾选
+        config.features.autoSubmit = GM_getValue('czbk_auto_submit', false); // 默认不勾选
+        config.features.skipAnswered = GM_getValue('czbk_skip_answered', config.features.skipAnswered);
+        config.features.useAI = GM_getValue('czbk_use_ai', config.features.useAI);
+        config.features.showControlPanel = GM_getValue('czbk_show_control_panel', config.features.showControlPanel);
 
         // 2. 加载本地答案库
         answerDBManager.load();
         
-        // 2.1. 加载答案尝试缓存
-        answerAttemptCache.load();
-        
-        // 2.2. 加载待纠错缓存
-        pendingCorrectionsCache.load();
+        // 智能纠错已移至后端处理，前端不再加载缓存
 
         // 3. 启动网络请求拦截器
         networkInterceptor.init();
@@ -7474,11 +7884,6 @@
             networkInterceptor.checkCompletedExamPage();
         }, 2000);
         
-        // 4.1. 检测答题页面并执行待纠错（延迟执行，等待页面加载）
-        setTimeout(() => {
-            networkInterceptor.checkAndExecutePendingCorrections();
-        }, 3000); // 延迟3秒，确保页面完全加载
-        
         // 监听页面变化（SPA应用可能动态加载内容）
         let lastUrl = location.href;
         const checkUrlChange = () => {
@@ -7487,8 +7892,7 @@
                 lastUrl = currentUrl;
                 setTimeout(() => {
                     networkInterceptor.checkCompletedExamPage();
-                    // URL变化时也检查待纠错
-                    networkInterceptor.checkAndExecutePendingCorrections();
+                    // 智能纠错已移至后端处理，前端不再执行纠错逻辑
                 }, 2000);
             }
         };
@@ -7506,8 +7910,7 @@
         window.addEventListener('popstate', () => {
             setTimeout(() => {
                 networkInterceptor.checkCompletedExamPage();
-                // 前进后退时也检查待纠错
-                networkInterceptor.checkAndExecutePendingCorrections();
+                // 智能纠错已移至后端处理，前端不再执行纠错逻辑
             }, 2000);
         });
 

@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  czbk-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: czbk-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # 工作进程数（1核CPU推荐2，2核推荐4）
+      - WORKERS=2
+      # 数据库配置（使用SQLite，数据持久化到volume）
+      - DATABASE_URL=sqlite+aiosqlite:///./data/czbk_api.db
+      # 管理员密钥（生产环境必须修改！）
+      - ADMIN_KEY=${ADMIN_KEY:-czbk_admin_2024_secret_key_change_in_production}
+      # AI服务配置（DeepSeek）
+      - AI_PROVIDER=${AI_PROVIDER:-deepseek}
+      - AI_API_KEY=${DEEPSEEK_API_KEY:-}
+      - AI_BASE_URL=${DEEPSEEK_BASE_URL:-}
+      - AI_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+      # OpenAI配置（可选）
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-3.5-turbo}
+      # DeepSeek配置
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+    volumes:
+      # 持久化数据库文件
+      - ./backend/data:/app/data
+      # 可选：挂载日志目录
+      - ./backend/logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # 资源限制（1核1GB服务器）
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 900M
+        reservations:
+          cpus: '0.5'
+          memory: 500M
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+

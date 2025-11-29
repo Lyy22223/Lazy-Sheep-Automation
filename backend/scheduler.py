@@ -12,7 +12,7 @@ if sys.stderr.encoding != 'utf-8':
 
 import asyncio
 import logging
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from database import reset_daily_queries_for_all
 
 logger = logging.getLogger(__name__)
@@ -24,8 +24,8 @@ async def reset_daily_queries_task():
         try:
             # 计算到明天0点的等待时间
             now = datetime.now()
-            tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            tomorrow = tomorrow.replace(day=tomorrow.day + 1)
+            # 使用timedelta正确计算明天的日期（避免月末日期错误）
+            tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
             
             wait_seconds = (tomorrow - now).total_seconds()
             

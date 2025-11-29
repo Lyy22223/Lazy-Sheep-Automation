@@ -2,7 +2,7 @@
 数据模型定义
 """
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime, date
 
 
@@ -42,6 +42,7 @@ class SearchResponse(BaseModel):
 # ==================== AI答题请求模型 ====================
 class AIAnswerRequest(BaseModel):
     """AI答题请求"""
+    questionId: Optional[str] = None  # 题目ID（可选，用于精确匹配）
     questionContent: str
     type: str = "0"
     options: Optional[List[str]] = None
@@ -84,3 +85,18 @@ class AIModel(BaseModel):
     features: Optional[List[str]] = []
     temperature: Optional[float] = 0.3
     maxTokens: Optional[int] = 2000
+
+
+# ==================== 纠错请求模型 ====================
+class CorrectionRequest(BaseModel):
+    """处理批改响应请求"""
+    resJson: dict  # 完整的res.json数据
+    attemptedAnswers: Optional[Dict[str, List[str]]] = None  # 前端已尝试的答案缓存
+
+
+class CorrectionStrategyRequest(BaseModel):
+    """获取纠错策略请求"""
+    questionId: str
+    questionType: str  # 0=单选, 1=多选, 2=判断, 3=填空, 4=简答
+    allOptions: Optional[List[str]] = None
+    attemptedAnswers: Optional[List[str]] = None

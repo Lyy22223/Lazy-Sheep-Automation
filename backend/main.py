@@ -231,11 +231,17 @@ async def ai_answer(
         
         # 步骤1: 先查询题库
         logger.info(f"[AI答题] 步骤1: 开始查询题库...")
+        
+        # 清理题目内容，去除特殊标记
+        from utils import clean_question_content
+        cleaned_content = clean_question_content(request.questionContent)
+        
         search_request = SearchRequest(
-            questionId=request.questionId,
-            questionContent=request.questionContent,
-            questionType=request.type,
-            options=request.options
+            questionId=getattr(request, 'questionId', None),  # 使用getattr安全获取，如果不存在则为None
+            questionContent=cleaned_content,
+            type=request.type,  # 修复：使用type而不是questionType
+            options=request.options,
+            platform=request.platform
         )
         
         try:
@@ -265,7 +271,7 @@ async def ai_answer(
         # 步骤2: 题库中没有答案，使用AI生成答案
         logger.info(f"[AI答题] 步骤2: 开始调用AI服务生成答案...")
         result = await ai_answer_question(
-            question=request.questionContent,
+            question=cleaned_content,  # 使用清理后的内容
             question_type=request.type,
             options=request.options,
             platform=request.platform or "czbk",
@@ -331,7 +337,8 @@ async def upload_questions(
                     total_questions += len(result_obj[qtype]["lists"])
         logger.info(f"[上传] 题目数量: {total_questions} 道")
         
-        result = await process_upload_data(data, key_info.api_key, only_correct=only_correct)
+        # 启用自动智能纠错（后端自动处理 res.json 中的错误答案）
+        result = await process_upload_data(data, key_info.api_key, only_correct=only_correct, auto_correct=True)
         
         logger.info(f"[上传] ✅ 上传成功: 总计={result.get('total', 0)}, 新增={result.get('new', 0)}, 更新={result.get('updated', 0)}")
         

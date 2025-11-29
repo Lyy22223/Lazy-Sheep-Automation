@@ -6,11 +6,15 @@ from typing import Dict, List, Optional
 from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+import logging
 
 from database import AsyncSessionLocal, PublicQuestionTable, APIKeyQuestionTable
+from utils import clean_question_content
+
+logger = logging.getLogger(__name__)
 
 
-async def process_upload_data(data: Dict, api_key: str, only_correct: bool = None) -> Dict:
+async def process_upload_data(data: Dict, api_key: str, only_correct: bool = None, auto_correct: bool = True) -> Dict:
     """
     处理上传的题库数据
     
@@ -184,6 +188,28 @@ async def process_upload_data(data: Dict, api_key: str, only_correct: bool = Non
                     statistics[question_type] += 1
         
         await session.commit()
+        
+        # 智能纠错：如果是 res.json 格式且启用自动纠错，处理答错的题目
+        # 注意：智能纠错在数据库提交后进行，避免影响题目保存
+        is_res_json = ("resultObject" in data and isinstance(data.get("resultObject"), dict) and 
+                      ("code" in data or "errorMessage" in data))
+        if is_res_json and auto_correct:
+            try:
+                from correction import process_grading_response
+                logger.info("[智能纠错] 开始处理批改响应...")
+                correction_result = process_grading_response(
+                    res_json=data,
+                    attempted_answers=None  # 后端自动管理缓存
+                )
+                correction_count = len(correction_result.get("corrections", []))
+                if correction_count > 0:
+                    logger.info(f"[智能纠错] 发现 {correction_count} 道题目需要纠错")
+                    # 注意：后端智能纠错只计算策略，不直接修改前端答案
+                    # 前端需要调用 /api/process-grading-response 获取纠错指令
+                else:
+                    logger.info("[智能纠错] 没有需要纠错的题目")
+            except Exception as e:
+                logger.error(f"[智能纠错] 处理失败: {str(e)}", exc_info=True)
     
     # 获取总题目数
     total = await get_total_question_count(api_key)
@@ -212,6 +238,9 @@ async def save_question(
     """
     question_id = item.get("id") or item.get("questionId") or item.get("question_id")
     question_content = item.get("questionContent") or item.get("question_content") or item.get("content", "")
+    
+    # 清理题目内容，去除特殊标记
+    question_content = clean_question_content(question_content)
     
     if not question_id or not question_content:
         return {"is_new": False, "question_id": None}
@@ -357,6 +386,10 @@ async def save_answer_record(
     question_id = record.get("questionId") or record.get("id")
     question_type = record.get("type") or record.get("questionType", "0")
     question_content = record.get("questionContent") or record.get("content", "")
+    
+    # 清理题目内容，去除特殊标记
+    question_content = clean_question_content(question_content)
+    
     answer = record.get("answer")
     platform = record.get("platform", "czbk")
     
