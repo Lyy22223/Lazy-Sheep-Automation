@@ -30,7 +30,8 @@
             aiEndpoint: '/api/ai/answer',
             keyInfoEndpoint: '/api/key/info',
             uploadEndpoint: '/api/upload',  // 上传题库接口
-            modelsEndpoint: '/api/models'  // 获取模型列表接口
+            modelsEndpoint: '/api/models',  // 获取模型列表接口
+            correctionEndpoint: '/api/process-grading-response'  // 智能纠错接口
         },
         
         // 功能开关
@@ -750,25 +751,65 @@
             // 查找对应value的radio input
             let radio = questionItem.querySelector(`input[type="radio"][value="${targetValue}"]`);
             if (radio) {
+                // 先取消其他radio的选中状态，避免触发多次change事件
+                const allRadios = questionItem.querySelectorAll('input[type="radio"]');
+                allRadios.forEach(r => {
+                    if (r !== radio && r.checked) {
+                        r.checked = false;
+                        // 触发change事件，但使用更安全的方式
+                        try {
+                            const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                            r.dispatchEvent(changeEvent);
+                        } catch (e) {
+                            // 忽略错误
+                        }
+                    }
+                });
+                
                 // Element Plus的radio结构：label.el-radio > input.el-radio__original
                 const label = radio.closest('label.el-radio');
+                
+                // 先设置checked属性，再触发事件（更安全的方式）
+                radio.checked = true;
+                
+                // 更新Element Plus的样式
                 if (label) {
-                    // 点击label（Element Plus推荐方式）
-                    label.click();
-                    await utils.sleep(config.answer.delay);
-                    // 验证是否选中
-                    if (radio.checked || label.classList.contains('is-checked')) {
-                        utils.log(`✅ 单选题已选择: value=${targetValue} (${answer})`);
-                        return true;
+                    label.classList.add('is-checked');
+                    const radioInner = label.querySelector('.el-radio__inner');
+                    if (radioInner) {
+                        radioInner.classList.add('is-checked');
                     }
-                } else {
-                    // 标准radio，直接点击
-                    radio.click();
-                    await utils.sleep(config.answer.delay);
-                    if (radio.checked) {
-                        utils.log(`✅ 单选题已选择: value=${targetValue} (${answer})`);
-                        return true;
+                }
+                
+                // 触发change事件（使用更安全的方式，避免触发原页面的某些监听器）
+                try {
+                    // 使用自定义事件，避免触发原页面的某些监听器
+                    const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                    Object.defineProperty(changeEvent, 'target', { value: radio, enumerable: true });
+                    radio.dispatchEvent(changeEvent);
+                    
+                    // 如果label存在，也触发click事件（但使用更安全的方式）
+                    if (label) {
+                        // 延迟点击，避免立即触发原页面的某些监听器
+                        setTimeout(() => {
+                            try {
+                                label.click();
+                            } catch (e) {
+                                // 忽略错误
+                            }
+                        }, 10);
                     }
+                } catch (e) {
+                    utils.log(`⚠️ 触发change事件时出错: ${e.message}`);
+                    // 如果事件触发失败，至少确保checked状态正确
+                }
+                
+                await utils.sleep(config.answer.delay);
+                
+                // 验证是否选中
+                if (radio.checked || (label && label.classList.contains('is-checked'))) {
+                    utils.log(`✅ 单选题已选择: value=${targetValue} (${answer})`);
+                    return true;
                 }
             }
             
@@ -819,22 +860,57 @@
                 const radioInput = targetOption.querySelector('input[type="radio"]');
                 const label = targetOption.closest('label.el-radio') || targetOption;
                 
-                // 点击label（Element Plus推荐方式）
-                if (label) {
-                    label.click();
-                    await utils.sleep(config.answer.delay);
-                    // 验证
-                    if (radioInput && (radioInput.checked || label.classList.contains('is-checked'))) {
-                        utils.log(`✅ 单选题已选择: 选项${targetIndex} (${answer})`);
-                        return true;
+                // 先取消其他radio的选中状态
+                const allRadios = questionItem.querySelectorAll('input[type="radio"]');
+                allRadios.forEach(r => {
+                    if (r !== radioInput && r.checked) {
+                        r.checked = false;
+                        try {
+                            const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                            r.dispatchEvent(changeEvent);
+                        } catch (e) {
+                            // 忽略错误
+                        }
                     }
-                }
+                });
                 
-                // 如果label点击失败，尝试直接点击radio input
+                // 先设置checked属性，再触发事件（更安全的方式）
                 if (radioInput) {
-                    radioInput.click();
+                    radioInput.checked = true;
+                    
+                    // 更新Element Plus的样式
+                    if (label) {
+                        label.classList.add('is-checked');
+                        const radioInner = label.querySelector('.el-radio__inner');
+                        if (radioInner) {
+                            radioInner.classList.add('is-checked');
+                        }
+                    }
+                    
+                    // 触发change事件（使用更安全的方式）
+                    try {
+                        const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                        Object.defineProperty(changeEvent, 'target', { value: radioInput, enumerable: true });
+                        radioInput.dispatchEvent(changeEvent);
+                        
+                        // 延迟点击label，避免立即触发原页面的某些监听器
+                        if (label) {
+                            setTimeout(() => {
+                                try {
+                                    label.click();
+                                } catch (e) {
+                                    // 忽略错误
+                                }
+                            }, 10);
+                        }
+                    } catch (e) {
+                        utils.log(`⚠️ 触发change事件时出错: ${e.message}`);
+                    }
+                    
                     await utils.sleep(config.answer.delay);
-                    if (radioInput.checked) {
+                    
+                    // 验证
+                    if (radioInput.checked || (label && label.classList.contains('is-checked'))) {
                         utils.log(`✅ 单选题已选择: 选项${targetIndex} (${answer})`);
                         return true;
                     }
@@ -900,14 +976,37 @@
             // 设置 Vue 数据中的 stuAnswer 为字符串格式
             if (vueInstance) {
                 try {
+                    // 确保 answerString 是有效的字符串（不能是 null 或 undefined）
+                    const safeAnswerString = answerString || '';
+                    
+                    // 方法1: 直接设置 data 对象
                     if (vueInstance.data) {
-                        vueInstance.data.stuAnswer = answerString;
+                        // 确保 stuAnswer 存在且是字符串类型
+                        if (!vueInstance.data.stuAnswer || typeof vueInstance.data.stuAnswer !== 'string') {
+                            vueInstance.data.stuAnswer = safeAnswerString;
+                        } else {
+                            vueInstance.data.stuAnswer = safeAnswerString;
+                        }
                     }
+                    
+                    // 方法2: 设置 $data（Vue 2）
                     if (vueInstance.$data) {
-                        vueInstance.$data.stuAnswer = answerString;
+                        vueInstance.$data.stuAnswer = safeAnswerString;
                     }
+                    
+                    // 方法3: 直接设置属性（Vue 3）
                     if (vueInstance.stuAnswer !== undefined) {
-                        vueInstance.stuAnswer = answerString;
+                        vueInstance.stuAnswer = safeAnswerString;
+                    }
+                    
+                    // 方法4: 使用 Vue 的响应式更新（如果可用）
+                    if (vueInstance.$set) {
+                        vueInstance.$set(vueInstance.data || vueInstance.$data || vueInstance, 'stuAnswer', safeAnswerString);
+                    }
+                    
+                    // 触发更新（如果页面代码需要）
+                    if (vueInstance.$forceUpdate) {
+                        vueInstance.$forceUpdate();
                     }
                 } catch (e) {
                     utils.log('设置 Vue 数据时出错:', e);
@@ -3984,6 +4083,61 @@
                         };
 
                         // 清空答案
+                        // 复制记录（题目或答案）
+                        const handleCopyRecord = (record, type) => {
+                            try {
+                                let textToCopy = '';
+                                if (type === 'question') {
+                                    textToCopy = record.question || '无题目';
+                                } else if (type === 'answer') {
+                                    textToCopy = record.answer || '无答案';
+                                } else {
+                                    return;
+                                }
+                                
+                                // 使用 Clipboard API（现代浏览器）
+                                if (navigator.clipboard && navigator.clipboard.writeText) {
+                                    navigator.clipboard.writeText(textToCopy).then(() => {
+                                        messageApi.success(type === 'question' ? '题目已复制到剪贴板' : '答案已复制到剪贴板');
+                                    }).catch(err => {
+                                        // 降级方案：使用传统方法
+                                        fallbackCopyText(textToCopy, type);
+                                    });
+                                } else {
+                                    // 降级方案：使用传统方法
+                                    fallbackCopyText(textToCopy, type);
+                                }
+                            } catch (e) {
+                                utils.log(`复制失败: ${e.message}`);
+                                messageApi.error('复制失败，请手动复制');
+                            }
+                        };
+                        
+                        // 降级复制方法
+                        const fallbackCopyText = (text, type) => {
+                            try {
+                                const textarea = document.createElement('textarea');
+                                textarea.value = text;
+                                textarea.style.position = 'fixed';
+                                textarea.style.left = '-9999px';
+                                textarea.style.top = '-9999px';
+                                document.body.appendChild(textarea);
+                                textarea.select();
+                                textarea.setSelectionRange(0, text.length);
+                                
+                                const success = document.execCommand('copy');
+                                document.body.removeChild(textarea);
+                                
+                                if (success) {
+                                    messageApi.success(type === 'question' ? '题目已复制到剪贴板' : '答案已复制到剪贴板');
+                                } else {
+                                    messageApi.error('复制失败，请手动复制');
+                                }
+                            } catch (e) {
+                                messageApi.error('复制失败，请手动复制');
+                            }
+                        };
+                        
                         const handleClearAnswer = async () => {
                             // 使用 ElementPlus 的 MessageBox
                             let ElMessageBox = null;
@@ -4443,6 +4597,7 @@
                             handleImportAnswer,
                             handleExportAnswer,
                             handleClearAnswer,
+                            handleCopyRecord,
                             handleStartAnswer,
                             handleStopAnswer,
                             handleCopyLogs,
@@ -4972,9 +5127,8 @@
                                                 </el-select>
                                                 <el-button 
                                                     @click="recordSortOrder = recordSortOrder === 'asc' ? 'desc' : 'asc'; updateStats()"
-                                                    :icon="recordSortOrder === 'asc' ? '↑' : '↓'"
                                                 >
-                                                    {{ recordSortOrder === 'asc' ? '升序' : '降序' }}
+                                                    {{ recordSortOrder === 'asc' ? '↑ 升序' : '↓ 降序' }}
                                                 </el-button>
                                             </el-space>
                                         </el-space>
@@ -4990,16 +5144,37 @@
                                                     <div class="czbk-answer-question" style="flex: 1;">
                                                         {{ record.question && record.question.length > 80 ? record.question.substring(0, 80) + '...' : (record.question || '无题目') }}
                                                     </div>
-                                                    <el-tag 
-                                                        :type="record.questionType === '0' ? '' : record.questionType === '1' ? 'success' : record.questionType === '2' ? 'warning' : record.questionType === '3' ? 'info' : 'danger'"
-                                                        size="small"
-                                                        style="margin-left: 8px; flex-shrink: 0;"
-                                                    >
-                                                        {{ record.questionType === '0' ? '单选' : record.questionType === '1' ? '多选' : record.questionType === '2' ? '判断' : record.questionType === '3' ? '填空' : record.questionType === '4' ? '简答' : '未知' }}
-                                                    </el-tag>
+                                                    <el-space :size="4" style="flex-shrink: 0; margin-left: 8px;">
+                                                        <el-tag 
+                                                            :type="record.questionType === '0' ? '' : record.questionType === '1' ? 'success' : record.questionType === '2' ? 'warning' : record.questionType === '3' ? 'info' : 'danger'"
+                                                            size="small"
+                                                        >
+                                                            {{ record.questionType === '0' ? '单选' : record.questionType === '1' ? '多选' : record.questionType === '2' ? '判断' : record.questionType === '3' ? '填空' : record.questionType === '4' ? '简答' : '未知' }}
+                                                        </el-tag>
+                                                        <el-button 
+                                                            size="small" 
+                                                            type="primary" 
+                                                            text 
+                                                            @click="handleCopyRecord(record, 'question')"
+                                                            title="复制题目"
+                                                            style="padding: 4px 8px;"
+                                                        >
+                                                            📋
+                                                        </el-button>
+                                                    </el-space>
                                                 </div>
-                                                <div class="czbk-answer-text">
-                                                    <strong>答案：</strong>{{ record.answer || '无答案' }}
+                                                <div class="czbk-answer-text" style="display: flex; justify-content: space-between; align-items: center;">
+                                                    <span><strong>答案：</strong>{{ record.answer || '无答案' }}</span>
+                                                    <el-button 
+                                                        size="small" 
+                                                        type="success" 
+                                                        text 
+                                                        @click="handleCopyRecord(record, 'answer')"
+                                                        title="复制答案"
+                                                        style="padding: 4px 8px; margin-left: 8px;"
+                                                    >
+                                                        📋
+                                                    </el-button>
                                                 </div>
                                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
                                                     <div class="czbk-answer-source">
@@ -5189,12 +5364,39 @@
     const answerAttemptCache = {
         _cache: {}, // questionId -> [尝试过的答案数组]
         
+        // 从本地存储加载缓存
+        load: function() {
+            try {
+                const stored = GM_getValue('czbk_answer_attempt_cache', null);
+                if (stored && typeof stored === 'object') {
+                    this._cache = stored;
+                    utils.log(`📦 已加载答案尝试缓存: ${Object.keys(this._cache).length} 道题目`);
+                } else {
+                    this._cache = {};
+                    utils.log('📦 答案尝试缓存为空，初始化新缓存');
+                }
+            } catch (e) {
+                utils.log('⚠️ 加载答案尝试缓存失败:', e);
+                this._cache = {};
+            }
+        },
+        
+        // 保存缓存到本地存储
+        save: function() {
+            try {
+                GM_setValue('czbk_answer_attempt_cache', this._cache);
+                utils.log(`💾 已保存答案尝试缓存: ${Object.keys(this._cache).length} 道题目`);
+            } catch (e) {
+                utils.log('⚠️ 保存答案尝试缓存失败:', e);
+            }
+        },
+        
         // 获取已尝试的答案列表
         getAttempted: function(questionId) {
             return this._cache[questionId] || [];
         },
         
-        // 添加尝试过的答案
+        // 添加尝试过的答案（自动保存）
         addAttempt: function(questionId, answer) {
             if (!this._cache[questionId]) {
                 this._cache[questionId] = [];
@@ -5202,6 +5404,11 @@
             const answerStr = Array.isArray(answer) ? answer.sort().join(',') : String(answer);
             if (!this._cache[questionId].includes(answerStr)) {
                 this._cache[questionId].push(answerStr);
+                // 延迟保存，避免频繁写入
+                this._saveTimer = this._saveTimer || setTimeout(() => {
+                    this.save();
+                    this._saveTimer = null;
+                }, 1000);
             }
         },
         
@@ -5215,11 +5422,26 @@
         // 清除某道题的缓存
         clear: function(questionId) {
             delete this._cache[questionId];
+            this.save();
         },
         
         // 清除所有缓存
         clearAll: function() {
             this._cache = {};
+            this.save();
+        },
+        
+        // 获取所有缓存数据（用于同步到后端）
+        getAll: function() {
+            return this._cache;
+        },
+        
+        // 批量更新缓存（从后端同步）
+        updateBatch: function(cacheData) {
+            if (cacheData && typeof cacheData === 'object') {
+                this._cache = Object.assign({}, this._cache, cacheData);
+                this.save();
+            }
         },
         
         // 获取下一个未尝试的选项（用于单选题、判断题）
@@ -5244,6 +5466,77 @@
             }
             
             return null; // 所有选项都尝试过了
+        }
+    };
+
+    // ==================== 待纠错缓存系统 ====================
+    // 用于保存待纠错的题目信息，在页面加载时自动执行纠错
+    const pendingCorrectionsCache = {
+        _cache: {}, // busyworkId -> { resultObject, attemptedAnswers, timestamp }
+        
+        // 保存待纠错信息
+        save: function(busyworkId, resultObject, attemptedAnswers) {
+            if (!busyworkId) {
+                utils.log('⚠️ 未提供busyworkId，无法保存待纠错信息');
+                return;
+            }
+            this._cache[busyworkId] = {
+                resultObject: resultObject,
+                attemptedAnswers: attemptedAnswers || {},
+                timestamp: Date.now()
+            };
+            try {
+                GM_setValue('czbk_pending_corrections', this._cache);
+                utils.log(`💾 已保存待纠错信息: busyworkId=${busyworkId}`);
+            } catch (e) {
+                utils.log(`⚠️ 保存待纠错信息失败: ${e.message}`);
+            }
+        },
+        
+        // 获取待纠错信息
+        get: function(busyworkId) {
+            if (!busyworkId) return null;
+            try {
+                const stored = GM_getValue('czbk_pending_corrections', {});
+                return stored[busyworkId] || null;
+            } catch (e) {
+                utils.log(`⚠️ 获取待纠错信息失败: ${e.message}`);
+                return null;
+            }
+        },
+        
+        // 清除待纠错信息
+        clear: function(busyworkId) {
+            if (!busyworkId) return;
+            try {
+                const stored = GM_getValue('czbk_pending_corrections', {});
+                delete stored[busyworkId];
+                GM_setValue('czbk_pending_corrections', stored);
+                this._cache = stored;
+                utils.log(`🗑️ 已清除待纠错信息: busyworkId=${busyworkId}`);
+            } catch (e) {
+                utils.log(`⚠️ 清除待纠错信息失败: ${e.message}`);
+            }
+        },
+        
+        // 加载所有缓存
+        load: function() {
+            try {
+                const stored = GM_getValue('czbk_pending_corrections', {});
+                this._cache = stored;
+                const count = Object.keys(this._cache).length;
+                if (count > 0) {
+                    utils.log(`📦 已加载待纠错缓存: ${count} 个作业`);
+                }
+            } catch (e) {
+                utils.log(`⚠️ 加载待纠错缓存失败: ${e.message}`);
+                this._cache = {};
+            }
+        },
+        
+        // 获取所有待纠错的busyworkId列表
+        getAllBusyworkIds: function() {
+            return Object.keys(this._cache);
         }
     };
 
@@ -5318,8 +5611,29 @@
             const hasAnswerData = function(data) {
                 if (!data) return false;
                 // 检查 res.json 格式（包含 code, errorMessage, resultObject）
-                if (data.resultObject && (data.code !== undefined || data.errorMessage !== undefined)) {
+                // 保存操作（updateStudentAns）返回的批改结果也包含 resultObject，即使 code 和 errorMessage 为 null
+                if (data.resultObject && (
+                    data.code !== undefined || 
+                    data.errorMessage !== undefined || 
+                    data.code === null || 
+                    data.errorMessage === null ||
+                    (data.success !== undefined) // 保存操作通常有 success 字段
+                )) {
                     // res.json 格式通常包含批改后的答案
+                    // 进一步检查 resultObject 中是否包含 correct 字段（批改结果）
+                    const result = data.resultObject;
+                    const questionTypes = ['danxuan', 'duoxuan', 'panduan', 'tiankong', 'jieda'];
+                    for (const type of questionTypes) {
+                        if (result[type] && result[type].lists) {
+                            for (const item of result[type].lists) {
+                                // 如果题目有 correct 字段或 stuAnswer 字段，说明是批改后的数据
+                                if (item.correct !== undefined || item.stuAnswer !== undefined) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                    // 如果没有找到 correct 字段，但 resultObject 存在，也认为可能包含答案
                     return true;
                 }
                 // 检查res格式（批改后的数据）
@@ -5390,7 +5704,29 @@
                         let uploadData = null;  // 用于上传到云端的数据
                         
                         // 先检查是否是 res.json 格式（在整个函数作用域中定义）
-                        const isResJsonFormat = data.resultObject && (data.code !== undefined || data.errorMessage !== undefined);
+                        // 保存操作（updateStudentAns）返回的批改结果也包含 resultObject，需要检查是否包含批改结果
+                        let isResJsonFormat = false;
+                        if (data.resultObject) {
+                            // 方法1: 检查是否有 code 或 errorMessage 字段（即使为 null）
+                            if (data.code !== undefined || data.errorMessage !== undefined) {
+                                isResJsonFormat = true;
+                            }
+                            // 方法2: 检查 resultObject 中是否包含批改结果（correct 字段）
+                            else {
+                                const result = data.resultObject;
+                                const questionTypes = ['danxuan', 'duoxuan', 'panduan', 'tiankong', 'jieda'];
+                                for (const type of questionTypes) {
+                                    if (result[type] && result[type].lists && result[type].lists.length > 0) {
+                                        // 检查第一道题是否有 correct 或 stuAnswer 字段（批改结果）
+                                        const firstItem = result[type].lists[0];
+                                        if (firstItem && (firstItem.correct !== undefined || firstItem.stuAnswer !== undefined)) {
+                                            isResJsonFormat = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         
                         if (isResJsonFormat) {
                             utils.log(`🎯 检测到 res.json 格式数据（${source}）！`);
@@ -6017,6 +6353,407 @@
             } catch (e) {
                 utils.log('检测已完成考试页面失败:', e);
             }
+        },
+        
+        // 智能纠错：处理批改响应，自动修正错误答案
+        handleAutoCorrect: async function(resultObject, busyworkId) {
+            try {
+                const currentApiKey = window.apiKey || GM_getValue('czbk_api_key', '');
+                if (!currentApiKey) {
+                    utils.log('⚠️ 未配置API Key，无法进行智能纠错');
+                    return;
+                }
+                
+                // 1. 提取 busyworkId（如果未提供，从URL提取）
+                if (!busyworkId) {
+                    const url = window.location.href;
+                    const match = url.match(/busywork[\/=]([a-zA-Z0-9]+)/);
+                    busyworkId = match ? match[1] : null;
+                }
+                
+                // 2. 构建完整的res.json数据（用于发送到后端）
+                const resJsonData = {
+                    resultObject: resultObject,
+                    code: 0,  // 假设是成功的响应
+                    errorMessage: null
+                };
+                
+                // 3. 获取前端已尝试的答案缓存
+                const attemptedAnswers = answerAttemptCache.getAll();
+                
+                // 4. 先调用后端API获取纠错策略（用于判断是否有待纠错题目）
+                utils.log('🔧 开始智能纠错处理...');
+                utils.log(`   已尝试答案缓存: ${Object.keys(attemptedAnswers).length} 道题目`);
+                
+                // 调用后端API处理批改响应（带重试机制）
+                let correctionResponse = null;
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                while (retryCount < maxRetries) {
+                    try {
+                        correctionResponse = await utils.request({
+                            method: 'POST',
+                            url: `${config.api.baseUrl}/api/process-grading-response`,
+                            data: {
+                                resJson: resJsonData,
+                                attemptedAnswers: attemptedAnswers
+                            },
+                            timeout: 30000,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-API-Key': currentApiKey
+                            }
+                        });
+                        
+                        if (correctionResponse && correctionResponse.code === 1) {
+                            break; // 成功，退出重试循环
+                        }
+                    } catch (e) {
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 5000); // 指数退避，最多5秒
+                            utils.log(`⚠️ API调用失败，${delay}ms后重试 (${retryCount}/${maxRetries})...`);
+                            await utils.sleep(delay);
+                        } else {
+                            utils.log(`❌ API调用失败，已重试${maxRetries}次: ${e.message}`);
+                            throw e;
+                        }
+                    }
+                }
+                
+                if (!correctionResponse || correctionResponse.code !== 1) {
+                    utils.log(`⚠️ 智能纠错API调用失败: ${correctionResponse?.message || '未知错误'}`);
+                    return;
+                }
+                
+                const corrections = correctionResponse.data?.corrections || [];
+                const updatedCache = correctionResponse.data?.cache || {};
+                
+                // 更新前端缓存
+                if (Object.keys(updatedCache).length > 0) {
+                    answerAttemptCache.updateBatch(updatedCache);
+                }
+                
+                if (corrections.length === 0) {
+                    utils.log('✅ 智能纠错完成：没有需要纠错的题目');
+                    // 清除可能存在的待纠错缓存
+                    if (busyworkId) {
+                        pendingCorrectionsCache.clear(busyworkId);
+                    }
+                    return;
+                }
+                
+                // 统计需要纠错的题目数量
+                const needCorrectCount = corrections.filter(c => c.shouldCorrect).length;
+                utils.log(`🔧 智能纠错：发现 ${needCorrectCount} 道题目需要纠错`);
+                
+                // 5. 检查当前是否在答题页面（通过检测题目元素）
+                const questionItems = document.querySelectorAll('.question-item, [data-id], .questionItem');
+                const isAnswerPage = questionItems.length > 0;
+                
+                if (!isAnswerPage) {
+                    // 不在答题页面，保存到缓存并显示提醒
+                    if (busyworkId) {
+                        pendingCorrectionsCache.save(busyworkId, resultObject, attemptedAnswers);
+                        utils.log(`💾 不在答题页面，已保存待纠错信息到缓存（${needCorrectCount} 道题目）`);
+                        
+                        // 显示提醒：使用 ElementPlus 的 Notification
+                        try {
+                            // 尝试多种方式获取 ElNotification
+                            let ElNotification = null;
+                            
+                            // 方法1: 从 window.ElementPlus 获取
+                            if (window.ElementPlus) {
+                                ElNotification = window.ElementPlus.ElNotification || 
+                                                window.ElementPlus.Notification ||
+                                                (window.ElementPlus.default && window.ElementPlus.default.ElNotification);
+                            }
+                            
+                            // 方法2: 从全局变量获取
+                            if (!ElNotification && window.ElNotification) {
+                                ElNotification = window.ElNotification;
+                            }
+                            
+                            // 方法3: 从 Vue 实例的全局属性获取（如果已创建）
+                            if (!ElNotification && window.Vue) {
+                                // 尝试从已创建的 Vue 应用实例获取
+                                const vueApp = document.querySelector('#czbkControlPanel')?.__vue_app__;
+                                if (vueApp && vueApp.config && vueApp.config.globalProperties) {
+                                    ElNotification = vueApp.config.globalProperties.$notify;
+                                }
+                            }
+                            
+                            if (ElNotification && typeof ElNotification === 'function') {
+                                ElNotification({
+                                    title: '智能纠错提醒',
+                                    message: `检测到 ${needCorrectCount} 道错误题目，点击"继续作业"后将自动纠错。`,
+                                    type: 'warning',
+                                    duration: 10000, // 10秒
+                                    position: 'top-right'
+                                });
+                                utils.log(`✅ 已显示智能纠错提醒（${needCorrectCount} 道题目）`);
+                            } else {
+                                // 降级方案：使用原生 alert
+                                alert(`🔧 智能纠错提醒\n\n检测到 ${needCorrectCount} 道错误题目，点击"继续作业"后将自动纠错。`);
+                                utils.log(`⚠️ ElementPlus Notification 不可用，已使用降级方案（alert）`);
+                            }
+                        } catch (e) {
+                            utils.log(`⚠️ 显示提醒失败: ${e.message}`);
+                            // 降级方案：使用 console
+                            console.log(`%c🔧 智能纠错提醒: 检测到 ${needCorrectCount} 道错误题目，点击"继续作业"后将自动纠错。`, 'color: #E6A23C; font-size: 14px; font-weight: bold;');
+                        }
+                    } else {
+                        utils.log('⚠️ 未找到busyworkId，无法保存待纠错信息');
+                    }
+                    return;
+                }
+                
+                // 在答题页面，立即执行纠错
+                utils.log(`✅ 在答题页面，开始执行纠错...`);
+                
+                // 执行纠错：填充正确答案（批量处理，最后统一保存）
+                let successCount = 0;
+                let failCount = 0;
+                const failedQuestions = []; // 记录失败的题目，用于重试
+                
+                // 第一轮：尝试填充所有答案
+                for (const correction of corrections) {
+                    if (!correction.shouldCorrect) {
+                        continue;
+                    }
+                    
+                    try {
+                        const questionId = correction.questionId;
+                        const questionType = correction.questionType;
+                        const nextAnswer = correction.nextAnswer;
+                        
+                        utils.log(`🔧 纠错题目 ${questionId}: 类型=${questionType}, 正确答案=${nextAnswer} (${successCount + failCount + 1}/${corrections.length})`);
+                        
+                        // 查找题目元素（带重试机制）
+                        const questionItem = await this.findQuestionElement(questionId, 3);
+                        
+                        if (!questionItem) {
+                            utils.log(`⚠️ 未找到题目元素: ${questionId}`);
+                            failedQuestions.push(correction);
+                            failCount++;
+                            continue;
+                        }
+                        
+                        // 填充答案
+                        const fillSuccess = await answerFiller.fill(questionItem, nextAnswer, questionType);
+                        if (fillSuccess) {
+                            utils.log(`✅ 已填充正确答案: ${questionId} = ${nextAnswer}`);
+                            successCount++;
+                            
+                            // 记录到缓存（会自动保存）
+                            answerAttemptCache.addAttempt(questionId, nextAnswer);
+                        } else {
+                            utils.log(`⚠️ 填充答案失败: ${questionId}`);
+                            failedQuestions.push(correction);
+                            failCount++;
+                        }
+                    } catch (e) {
+                        utils.log(`❌ 纠错题目失败: ${correction.questionId}, 错误: ${e.message}`);
+                        console.error('纠错错误详情:', e);
+                        failedQuestions.push(correction);
+                        failCount++;
+                    }
+                }
+                
+                // 第二轮：重试失败的题目
+                if (failedQuestions.length > 0) {
+                    utils.log(`🔄 开始重试失败的题目: ${failedQuestions.length} 道`);
+                    await utils.sleep(2000); // 等待DOM更新
+                    
+                    for (const correction of failedQuestions) {
+                        try {
+                            const questionId = correction.questionId;
+                            const questionType = correction.questionType;
+                            const nextAnswer = correction.nextAnswer;
+                            
+                            // 再次查找题目元素
+                            const questionItem = await this.findQuestionElement(questionId, 3);
+                            
+                            if (questionItem) {
+                                const fillSuccess = await answerFiller.fill(questionItem, nextAnswer, questionType);
+                                if (fillSuccess) {
+                                    utils.log(`✅ 重试成功: ${questionId} = ${nextAnswer}`);
+                                    successCount++;
+                                    failCount--;
+                                    answerAttemptCache.addAttempt(questionId, nextAnswer);
+                                }
+                            }
+                        } catch (e) {
+                            // 重试失败，忽略
+                        }
+                    }
+                }
+                
+                // 批量保存：所有纠错完成后统一保存一次
+                if (successCount > 0) {
+                    utils.log(`💾 批量保存: ${successCount} 道题目已纠错，准备保存...`);
+                    await utils.sleep(500); // 等待DOM更新完成
+                    const saveSuccess = await this.triggerSave();
+                    if (saveSuccess) {
+                        utils.log(`✅ 批量保存成功`);
+                    } else {
+                        utils.log(`⚠️ 批量保存失败，可能需要手动保存`);
+                    }
+                }
+                
+                utils.log(`✅ 智能纠错完成: 成功 ${successCount} 道, 失败 ${failCount} 道`);
+                
+                // 纠错完成后，清除缓存
+                if (busyworkId) {
+                    pendingCorrectionsCache.clear(busyworkId);
+                }
+                
+            } catch (e) {
+                utils.log(`❌ 智能纠错处理失败: ${e.message}`);
+                console.error('智能纠错错误详情:', e);
+            }
+        },
+        
+        // 检查并执行待纠错（答题页面加载时）
+        checkAndExecutePendingCorrections: async function() {
+            try {
+                // 1. 从URL提取 busyworkId（答题页面格式：/writePaper/busywork/{busyworkId}）
+                const url = window.location.href;
+                const match = url.match(/\/writePaper\/busywork\/([a-zA-Z0-9]+)/);
+                if (!match) {
+                    return; // 不是答题页面
+                }
+                
+                const busyworkId = match[1];
+                utils.log(`🔍 检测到答题页面，busyworkId=${busyworkId}，检查是否有待纠错题目...`);
+                
+                // 2. 从缓存获取待纠错信息
+                const pendingCorrection = pendingCorrectionsCache.get(busyworkId);
+                if (!pendingCorrection) {
+                    utils.log('✅ 没有待纠错的题目');
+                    return;
+                }
+                
+                // 3. 检查缓存是否过期（超过30分钟则清除）
+                const age = Date.now() - pendingCorrection.timestamp;
+                if (age > 30 * 60 * 1000) {
+                    utils.log(`⚠️ 待纠错信息已过期（${Math.round(age / 1000 / 60)}分钟），清除缓存`);
+                    pendingCorrectionsCache.clear(busyworkId);
+                    return;
+                }
+                
+                // 4. 等待页面完全加载（题目元素出现）
+                utils.log('⏳ 等待页面完全加载...');
+                let questionItems = [];
+                for (let i = 0; i < 10; i++) {
+                    questionItems = document.querySelectorAll('.question-item, [data-id], .questionItem');
+                    if (questionItems.length > 0) {
+                        break;
+                    }
+                    await utils.sleep(500);
+                }
+                
+                if (questionItems.length === 0) {
+                    utils.log('⚠️ 未找到题目元素，无法执行纠错');
+                    return;
+                }
+                
+                utils.log(`✅ 页面已加载，找到 ${questionItems.length} 道题目，开始执行纠错...`);
+                
+                // 5. 恢复已尝试的答案缓存
+                if (pendingCorrection.attemptedAnswers) {
+                    answerAttemptCache.updateBatch(pendingCorrection.attemptedAnswers);
+                }
+                
+                // 6. 执行纠错（传入 busyworkId 确保能清除缓存）
+                await this.handleAutoCorrect(pendingCorrection.resultObject, busyworkId);
+                
+            } catch (e) {
+                utils.log(`❌ 执行待纠错失败: ${e.message}`);
+                console.error('执行待纠错错误详情:', e);
+            }
+        },
+        
+        // 查找题目元素（带重试机制）
+        findQuestionElement: async function(questionId, maxRetries = 3) {
+            for (let i = 0; i < maxRetries; i++) {
+                // 方法1: 直接通过data-id查找
+                let questionItem = document.querySelector(`[data-id="${questionId}"], [data-questionid="${questionId}"]`);
+                if (questionItem) {
+                    return questionItem;
+                }
+                
+                // 方法2: 遍历所有题目元素，通过getQuestionId匹配
+                const questionItems = document.querySelectorAll('.question-item, .questionItem, [data-id]');
+                for (const item of questionItems) {
+                    const id = utils.getQuestionId(item);
+                    if (id === questionId) {
+                        return item;
+                    }
+                }
+                
+                // 如果没找到，等待后重试
+                if (i < maxRetries - 1) {
+                    const delay = 500 * (i + 1); // 递增延迟：500ms, 1000ms, 1500ms
+                    utils.log(`⏳ 未找到题目元素 ${questionId}，${delay}ms后重试 (${i + 1}/${maxRetries})...`);
+                    await utils.sleep(delay);
+                }
+            }
+            
+            return null;
+        },
+        
+        // 触发保存（查找并点击保存按钮）
+        triggerSave: async function() {
+            try {
+                // 尝试多种选择器查找保存按钮
+                const saveButtonSelectors = [
+                    'button:contains("保存")',
+                    'button:contains("保存退出")',
+                    '.save button',
+                    '.subBtn .save button',
+                    'button.el-button:contains("保存")',
+                    '[class*="save"] button',
+                    'button[type="button"]:contains("保存")'
+                ];
+                
+                // 使用querySelector查找包含"保存"文本的按钮
+                const allButtons = document.querySelectorAll('button, .el-button, [role="button"]');
+                let saveButton = null;
+                
+                for (const button of allButtons) {
+                    const text = button.textContent || button.innerText || '';
+                    if (text.includes('保存') && !text.includes('提交')) {
+                        saveButton = button;
+                        break;
+                    }
+                }
+                
+                if (saveButton) {
+                    // 触发点击事件
+                    saveButton.click();
+                    utils.log('✅ 已触发保存按钮');
+                    await utils.sleep(1000); // 等待保存完成
+                    return true;
+                } else {
+                    // 尝试查找保存相关的元素并触发事件
+                    const saveElements = document.querySelectorAll('[class*="save"], [id*="save"]');
+                    for (const element of saveElements) {
+                        if (element.tagName === 'BUTTON' || element.onclick) {
+                            element.click();
+                            utils.log('✅ 已触发保存（通过类名/ID查找）');
+                            await utils.sleep(1000);
+                            return true;
+                        }
+                    }
+                    utils.log('⚠️ 未找到保存按钮，可能需要手动保存');
+                    return false;
+                }
+            } catch (e) {
+                utils.log(`⚠️ 触发保存失败: ${e.message}`);
+                return false;
+            }
         }
     };
 
@@ -6046,6 +6783,12 @@
 
         // 2. 加载本地答案库
         answerDBManager.load();
+        
+        // 2.1. 加载答案尝试缓存
+        answerAttemptCache.load();
+        
+        // 2.2. 加载待纠错缓存
+        pendingCorrectionsCache.load();
 
         // 3. 启动网络请求拦截器
         networkInterceptor.init();
@@ -6055,6 +6798,11 @@
             networkInterceptor.checkCompletedExamPage();
         }, 2000);
         
+        // 4.1. 检测答题页面并执行待纠错（延迟执行，等待页面加载）
+        setTimeout(() => {
+            networkInterceptor.checkAndExecutePendingCorrections();
+        }, 3000); // 延迟3秒，确保页面完全加载
+        
         // 监听页面变化（SPA应用可能动态加载内容）
         let lastUrl = location.href;
         const checkUrlChange = () => {
@@ -6063,6 +6811,8 @@
                 lastUrl = currentUrl;
                 setTimeout(() => {
                     networkInterceptor.checkCompletedExamPage();
+                    // URL变化时也检查待纠错
+                    networkInterceptor.checkAndExecutePendingCorrections();
                 }, 2000);
             }
         };
@@ -6080,6 +6830,8 @@
         window.addEventListener('popstate', () => {
             setTimeout(() => {
                 networkInterceptor.checkCompletedExamPage();
+                // 前进后退时也检查待纠错
+                networkInterceptor.checkAndExecutePendingCorrections();
             }, 2000);
         });
 

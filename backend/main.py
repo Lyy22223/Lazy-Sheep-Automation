@@ -28,7 +28,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-from models import APIKey, SearchRequest, SearchResponse, AIAnswerRequest, AIAnswerResponse, AIModel
+from models import APIKey, SearchRequest, SearchResponse, AIAnswerRequest, AIAnswerResponse, AIModel, CorrectionRequest, CorrectionStrategyRequest
 from database import init_db, get_db, update_query_count
 from auth import verify_api_key, verify_api_key_optional, check_search_limit
 from search import search_answer, batch_search_answer, get_answer_stats
@@ -137,25 +137,32 @@ async def search(
     - 相似度匹配
     """
     try:
+        logger.info(f"[搜索] 收到请求: API Key={key_info.api_key[:10]}..., questionId={request.questionId}, questionType={request.type}")
+        logger.info(f"[搜索] 题目内容: {request.questionContent[:100]}{'...' if len(request.questionContent) > 100 else ''}")
+        if request.options:
+            logger.info(f"[搜索] 选项数量: {len(request.options)}")
+        
         result = await search_answer(request, key_info.api_key)
         
         # 更新查询次数（无论是否找到都算一次查询）
         await increment_query_count(key_info.api_key)
         
         if result and result.get("found"):
+            logger.info(f"[搜索] ✅ 找到答案: answer={result.get('answer')}, source={result.get('source')}, matchType={result.get('matchType')}, confidence={result.get('confidence')}")
             return {
                 "code": 1,
                 "message": "找到答案",
                 "data": result
             }
         else:
+            logger.info(f"[搜索] ⚠️ 未找到匹配的答案")
             return {
                 "code": 0,
                 "message": "未找到匹配的答案",
                 "data": None
             }
     except Exception as e:
-        logger.error(f"搜索失败: {str(e)}", exc_info=True)
+        logger.error(f"[搜索] ❌ 搜索失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"搜索失败: {str(e)}")
 
 
@@ -167,8 +174,11 @@ async def batch_search(
 ):
     """批量搜索答案"""
     try:
+        logger.info(f"[批量搜索] 收到请求: API Key={key_info.api_key[:10]}..., 请求数量={len(requests)}")
+        
         # 检查批量请求数量限制
         if len(requests) > 100:
+            logger.warning(f"[批量搜索] ⚠️ 请求数量超过限制: {len(requests)} > 100")
             raise HTTPException(status_code=400, detail="批量请求最多100条")
         
         results = await batch_search_answer(requests, key_info.api_key)
@@ -177,6 +187,8 @@ async def batch_search(
         found_count = sum(1 for r in results if r.get("found"))
         if found_count > 0:
             await increment_query_count(key_info.api_key, count=found_count)
+        
+        logger.info(f"[批量搜索] ✅ 批量搜索完成: 总计={len(requests)}, 找到={found_count}, 未找到={len(requests) - found_count}")
         
         return {
             "code": 1,
@@ -189,7 +201,7 @@ async def batch_search(
             }
         }
     except Exception as e:
-        logger.error(f"批量搜索失败: {str(e)}", exc_info=True)
+        logger.error(f"[批量搜索] ❌ 批量搜索失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"批量搜索失败: {str(e)}")
 
 
@@ -202,17 +214,56 @@ async def ai_answer(
     """
     AI答题接口
     
-    当本地答案库找不到答案时，使用AI生成答案
+    流程：
+    1. 先查询题库，如果找到答案则直接返回
+    2. 如果题库中没有答案，再使用AI生成答案
     """
     try:
-        logger.info(f"收到AI答题请求: API Key={key_info.api_key[:10]}..., question_type={request.type}, model={request.model}")
-        logger.info(f"题目内容: {request.questionContent[:100]}...")
+        logger.info(f"[AI答题] 收到请求: API Key={key_info.api_key[:10]}..., question_type={request.type}, model={request.model}")
+        logger.info(f"[AI答题] 题目内容: {request.questionContent[:100]}{'...' if len(request.questionContent) > 100 else ''}")
+        if request.options:
+            logger.info(f"[AI答题] 选项数量: {len(request.options)}, 选项内容: {request.options}")
         
         # 检查AI功能是否启用
         if not key_info.is_active:
-            logger.warning(f"API Key未激活: {key_info.api_key[:10]}...")
+            logger.warning(f"[AI答题] API Key未激活: {key_info.api_key[:10]}...")
             raise HTTPException(status_code=403, detail="API Key未激活")
         
+        # 步骤1: 先查询题库
+        logger.info(f"[AI答题] 步骤1: 开始查询题库...")
+        search_request = SearchRequest(
+            questionId=request.questionId,
+            questionContent=request.questionContent,
+            questionType=request.type,
+            options=request.options
+        )
+        
+        try:
+            search_result = await search_answer(search_request, key_info.api_key)
+            logger.info(f"[AI答题] 题库查询结果: found={search_result.get('found')}, answer={search_result.get('answer') if search_result.get('found') else 'N/A'}")
+            
+            if search_result and search_result.get("found"):
+                # 题库中找到答案，直接返回
+                logger.info(f"[AI答题] ✅ 题库中找到答案，直接返回: answer={search_result.get('answer')}, source={search_result.get('source', 'unknown')}")
+                return {
+                    "code": 1,
+                    "message": "题库中找到答案",
+                    "data": {
+                        "answer": search_result.get("answer"),
+                        "solution": search_result.get("solution", ""),
+                        "confidence": search_result.get("confidence", 1.0),
+                        "source": search_result.get("source", "database"),
+                        "model": None  # 来自题库，不是AI生成
+                    }
+                }
+            else:
+                logger.info(f"[AI答题] ⚠️ 题库中未找到答案，继续使用AI答题")
+        except Exception as e:
+            logger.warning(f"[AI答题] 题库查询失败，继续使用AI答题: {str(e)}")
+            # 题库查询失败不影响AI答题流程，继续执行
+        
+        # 步骤2: 题库中没有答案，使用AI生成答案
+        logger.info(f"[AI答题] 步骤2: 开始调用AI服务生成答案...")
         result = await ai_answer_question(
             question=request.questionContent,
             question_type=request.type,
@@ -221,7 +272,7 @@ async def ai_answer(
             model=request.model  # 传递模型参数
         )
         
-        logger.info(f"AI答题成功: answer={result.get('answer')}")
+        logger.info(f"[AI答题] ✅ AI答题成功: answer={result.get('answer')}, model={result.get('model')}, source={result.get('source')}")
         
         # 更新查询次数
         await increment_query_count(key_info.api_key)
@@ -234,7 +285,8 @@ async def ai_answer(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"AI答题失败: {str(e)}", exc_info=True)
+        logger.error(f"[AI答题] ❌ AI答题失败: {str(e)}", exc_info=True)
+        logger.error(f"[AI答题] 错误类型: {type(e).__name__}")
         raise HTTPException(status_code=500, detail=f"AI答题失败: {str(e)}")
 
 
@@ -255,6 +307,8 @@ async def upload_questions(
     try:
         from upload import process_upload_data
         
+        logger.info(f"[上传] 收到请求: API Key={key_info.api_key[:10]}...")
+        
         # res.json 格式默认只保存正确答案（correct: true）
         # 检查是否是 res.json 格式
         is_res_json = ("resultObject" in data and isinstance(data.get("resultObject"), dict) and 
@@ -265,8 +319,21 @@ async def upload_questions(
         # 其他格式：传递 False（保存所有题目）
         only_correct = None if is_res_json else False
         
-        logger.info(f"上传题库数据: is_res_json={is_res_json}, only_correct={only_correct}")
+        logger.info(f"[上传] 数据格式: is_res_json={is_res_json}, only_correct={only_correct}")
+        
+        # 统计题目数量（用于日志）
+        total_questions = 0
+        if is_res_json and "resultObject" in data:
+            result_obj = data.get("resultObject", {})
+            question_types = ['danxuan', 'duoxuan', 'panduan', 'tiankong', 'jieda']
+            for qtype in question_types:
+                if qtype in result_obj and isinstance(result_obj[qtype], dict) and "lists" in result_obj[qtype]:
+                    total_questions += len(result_obj[qtype]["lists"])
+        logger.info(f"[上传] 题目数量: {total_questions} 道")
+        
         result = await process_upload_data(data, key_info.api_key, only_correct=only_correct)
+        
+        logger.info(f"[上传] ✅ 上传成功: 总计={result.get('total', 0)}, 新增={result.get('new', 0)}, 更新={result.get('updated', 0)}")
         
         return {
             "code": 1,
@@ -274,7 +341,7 @@ async def upload_questions(
             "data": result
         }
     except Exception as e:
-        logger.error(f"上传失败: {str(e)}", exc_info=True)
+        logger.error(f"[上传] ❌ 上传失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
 
 
@@ -295,6 +362,74 @@ async def get_stats(key_info: APIKey = Depends(verify_api_key)):
     except Exception as e:
         logger.error(f"获取统计失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"获取统计失败: {str(e)}")
+
+
+# ==================== 智能纠错接口 ====================
+@app.post("/api/process-grading-response")
+async def process_grading_response(
+    request: CorrectionRequest,
+    key_info: APIKey = Depends(verify_api_key)
+):
+    """
+    处理批改响应，计算纠错策略
+    
+    接收完整的res.json数据，分析答错的题目，返回纠错指令
+    """
+    try:
+        from correction import process_grading_response as process_correction
+        
+        logger.info(f"收到批改响应处理请求: API Key={key_info.api_key[:10]}...")
+        
+        result = process_correction(
+            res_json=request.resJson,
+            attempted_answers=request.attemptedAnswers
+        )
+        
+        correction_count = len(result.get("corrections", []))
+        logger.info(f"批改响应处理完成: 需要纠错的题目数={correction_count}")
+        
+        return {
+            "code": 1,
+            "message": "批改响应处理成功",
+            "data": result
+        }
+    except Exception as e:
+        logger.error(f"处理批改响应失败: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"处理批改响应失败: {str(e)}")
+
+
+@app.post("/api/get-correction-strategy")
+async def get_correction_strategy(
+    request: CorrectionStrategyRequest,
+    key_info: APIKey = Depends(verify_api_key)
+):
+    """
+    根据题目和已尝试答案，返回下一个应该尝试的答案
+    
+    用于前端主动查询纠错策略
+    """
+    try:
+        from correction import get_correction_strategy as get_strategy
+        
+        logger.info(f"收到纠错策略请求: questionId={request.questionId}, type={request.questionType}")
+        
+        result = get_strategy(
+            question_id=request.questionId,
+            question_type=request.questionType,
+            all_options=request.allOptions,
+            attempted_answers=request.attemptedAnswers
+        )
+        
+        logger.info(f"纠错策略计算完成: nextAnswer={result.get('nextAnswer')}, remainingAttempts={result.get('remainingAttempts')}")
+        
+        return {
+            "code": 1,
+            "message": "获取纠错策略成功",
+            "data": result
+        }
+    except Exception as e:
+        logger.error(f"获取纠错策略失败: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"获取纠错策略失败: {str(e)}")
 
 
 # ==================== 模型列表接口 ====================
