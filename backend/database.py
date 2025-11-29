@@ -1,6 +1,15 @@
 """
 数据库操作模块
 """
+import sys
+import io
+# 设置标准输出编码为UTF-8，避免乱码
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+import logging
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Boolean, Index
@@ -9,6 +18,8 @@ from typing import Optional
 import json
 
 from config import DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
@@ -104,7 +115,7 @@ async def init_db():
     """初始化数据库，创建所有表"""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    print("数据库表创建完成")
+    logger.info("数据库表创建完成")
 
 
 # ==================== 获取数据库会话 ====================

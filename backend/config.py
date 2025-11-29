@@ -24,9 +24,14 @@ OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
 
 # DeepSeek配置
+# DeepSeek API与OpenAI兼容，base_url可以是 https://api.deepseek.com 或 https://api.deepseek.com/v1
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
-DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")  # 默认使用DeepSeek-V3.2-Exp非思考模式
+
+# DeepSeek模型说明（都已升级为DeepSeek-V3.2-Exp）：
+# - deepseek-chat: DeepSeek-V3.2-Exp 非思考模式，快速响应，适合快速答题
+# - deepseek-reasoner: DeepSeek-V3.2-Exp 思考模式，深度推理，适合复杂逻辑题
 
 # API配置
 API_BASE_URL = os.getenv("API_BASE_URL", "http://8.138.237.189:8000")
