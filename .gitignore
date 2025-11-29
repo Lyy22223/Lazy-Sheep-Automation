@@ -61,9 +61,12 @@ test_*.py
 tools/
 backend/extract_answers.py
 backend/EXTRACT_ANSWERS.md
+backend/get_api_key.py
+backend/test_*.py
 
 # HTML测试文件
 html/
+docs/index.html
 
 # 测试数据文件
 data/*.json
