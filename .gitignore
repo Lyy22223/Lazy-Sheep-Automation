@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 环境变量文件
+.env
+.env.local
+
+# 日志文件
+*.log
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# Cursor配置（可选，如果需要共享配置可以移除）
+.cursor/
+
+# 测试文件（可选，如果需要可以移除）
+test_*.py
+*_test.py
+
+# 临时文件
+*.tmp
+*.bak
+*.cache
+
+# HTML测试文件（可选）
+html/
+
+# 数据文件（可选，如果需要可以移除）
+data/*.json
+!data/index.json
+
