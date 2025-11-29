@@ -10,7 +10,7 @@ from config import PLAN_LIMITS
 
 
 async def get_api_key_header(x_api_key: Optional[str] = Header(None, alias="X-API-Key")) -> str:
-    """从请求头获取API Key"""
+    """从请求头获取API Key（必需）"""
     if not x_api_key:
         raise HTTPException(
             status_code=401,
@@ -19,9 +19,14 @@ async def get_api_key_header(x_api_key: Optional[str] = Header(None, alias="X-AP
     return x_api_key
 
 
+async def get_api_key_header_optional(x_api_key: Optional[str] = Header(None, alias="X-API-Key")) -> Optional[str]:
+    """从请求头获取API Key（可选）"""
+    return x_api_key
+
+
 async def verify_api_key(api_key: str = Depends(get_api_key_header)) -> APIKey:
     """
-    验证API Key并返回Key信息
+    验证API Key并返回Key信息（必需）
     
     检查：
     1. API Key是否存在
@@ -40,6 +45,54 @@ async def verify_api_key(api_key: str = Depends(get_api_key_header)) -> APIKey:
     # 检查是否过期
     if key_record.expires_at and key_record.expires_at < datetime.now():
         raise HTTPException(status_code=403, detail="API Key has expired")
+    
+    # 检查是否需要重置每日查询次数
+    today = date.today()
+    if key_record.last_reset_date != today:
+        # 重置每日查询次数
+        from database import reset_daily_queries_for_key
+        await reset_daily_queries_for_key(api_key)
+        # 重新获取更新后的记录
+        key_record = await get_api_key_by_key(api_key)
+    
+    # 转换为APIKey模型
+    return APIKey(
+        id=key_record.id,
+        api_key=key_record.api_key,
+        plan=key_record.plan,
+        created_at=key_record.created_at,
+        expires_at=key_record.expires_at,
+        total_queries=key_record.total_queries,
+        daily_queries=key_record.daily_queries,
+        daily_limit=key_record.daily_limit,
+        last_reset_date=key_record.last_reset_date,
+        is_active=key_record.is_active
+    )
+
+
+async def verify_api_key_optional(api_key: Optional[str] = Depends(get_api_key_header_optional)) -> Optional[APIKey]:
+    """
+    可选验证API Key（用于允许无认证访问的接口）
+    
+    如果提供了API Key，则验证并返回Key信息
+    如果没有提供，返回None
+    """
+    if not api_key:
+        return None
+    
+    # 从数据库获取Key信息
+    key_record = await get_api_key_by_key(api_key)
+    
+    if not key_record:
+        # 如果提供了API Key但无效，仍然返回None（不抛出异常，允许无认证访问）
+        return None
+    
+    if not key_record.is_active:
+        return None
+    
+    # 检查是否过期
+    if key_record.expires_at and key_record.expires_at < datetime.now():
+        return None
     
     # 检查是否需要重置每日查询次数
     today = date.today()

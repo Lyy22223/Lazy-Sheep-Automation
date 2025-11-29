@@ -46,6 +46,7 @@ class AIAnswerRequest(BaseModel):
     type: str = "0"
     options: Optional[List[str]] = None
     platform: Optional[str] = "czbk"
+    model: Optional[str] = None  # 可选的模型参数，用于指定使用的AI模型
 
 
 # ==================== AI答题响应模型 ====================
@@ -71,3 +72,15 @@ class Question(BaseModel):
     api_key: Optional[str] = None  # 如果是用户贡献的，记录API Key
     created_at: Optional[datetime] = None
 
+
+# ==================== AI模型数据模型 ====================
+class AIModel(BaseModel):
+    """AI模型数据模型"""
+    id: str
+    name: str
+    provider: str
+    description: Optional[str] = ""
+    baseUrl: Optional[str] = None
+    features: Optional[List[str]] = []
+    temperature: Optional[float] = 0.3
+    maxTokens: Optional[int] = 2000
