@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         懒羊羊自动化平台 - 传智播客答题脚本|刷课脚本|AI答题|Vue3+ElementPlus
 // @namespace    http://tampermonkey.net/
-// @version      4.0.9-optimized
+// @version      4.0.10-optimized
 // @description  懒羊羊自动化平台出品 - 传智播客专用智能答题脚本，支持率最高！支持传智播客刷课答题、智能答题、AI自动答题。功能强大：本地答案库、云端API查询、智能纠错、批量答题、自动刷课。使用Vue3+ElementPlus现代化UI，操作简单，答题准确率最高！【深度性能优化版】
 // @author       懒羊羊自动化平台
 // @match        https://stu.ityxb.com/*
@@ -22,7 +22,7 @@
     'use strict';
 
     /**
-     * ==================== 性能优化说明 (v4.0.9-optimized) ====================
+     * ==================== 性能优化说明 (v4.0.10-optimized) ====================
      * 
      * 第一轮优化 (v4.0.1):
      * 1. 缓存机制优化：Map替代WeakMap、LRU清理策略
@@ -67,6 +67,11 @@
      * 24. 修复多选题点击触发：改用原生.click()替代dispatchEvent
      * 25. 简化填充流程：取消旧选项和选中新选项都直接.click()
      * 26. 参考控制台测试脚本：与手动点击行为完全一致
+     * 
+     * BugFix (v4.0.10):
+     * 27. 优化多选题填充逻辑：使用Set精确匹配目标索引
+     * 28. 智能状态调整：只点击需要改变状态的checkbox
+     * 29. 增强调试日志：显示详细的点击过程和结果验证
      * 
      * 综合性能提升：DOM查询↑40%、内存↓35%、答题速度↑25%、稳定性↑35%
      */
@@ -1049,54 +1054,56 @@
                 return isLetter ? (v.charCodeAt(0) - 65) : parseInt(v);
             });
 
-            // 1. Vue数据更新（使用索引数组）
-            const group = questionItem.querySelector('.el-checkbox-group');
-            if (group) {
-                // 尝试多个可能的属性名
-                ['modelValue', 'value', 'checkedValues', 'selected'].some(key => VueUtils.updateData(group, key, indexes));
-            }
-            // stuAnswer必须是字符串格式（连续索引，无分隔符，如 '012'）
-            // 平台的 initDuoxuanModel 会调用 stuAnswer.split()
-            VueUtils.updateData(questionItem, 'stuAnswer', indexes.join(''));
-
-            // 2. DOM操作 - 优化：批量处理
+            // DOM操作 - 完全模拟控制台测试脚本的行为
             const checkboxes = questionItem.querySelectorAll('input[type="checkbox"]');
             let successCount = 0;
 
-            // 步骤1: 先取消所有选项（避免旧答案干扰）- 直接点击
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    checkbox.click(); // 直接点击取消选中
-                }
-            });
-
-            // 步骤2: 选中正确答案 - 直接点击（像控制台测试脚本那样）
-            for (const val of vals) {
-                const isLetter = REGEX_PATTERNS.SINGLE_LETTER.test(val);
-                const index = isLetter ? val.charCodeAt(0) - 65 : -1;
+            // 策略：像测试脚本一样，直接点击需要的选项
+            // 如果选项已选中且不在答案中，点击取消
+            // 如果选项未选中且在答案中，点击选中
+            
+            // 先确定哪些需要选中
+            const targetIndexes = new Set(indexes);
+            
+            // 遍历所有checkbox，确保状态正确
+            if (config.debug) {
+                utils.log(`   🔍 多选题填充调试: 总共${checkboxes.length}个选项，需要选中索引: ${Array.from(targetIndexes).join(',')}`);
+            }
+            
+            for (let i = 0; i < checkboxes.length; i++) {
+                const checkbox = checkboxes[i];
+                const shouldBeChecked = targetIndexes.has(i);
                 
-                let input = null;
-                for (let i = 0; i < checkboxes.length; i++) {
-                    if (checkboxes[i].value === val || i === index) {
-                        input = checkboxes[i];
-                        break;
+                if (shouldBeChecked && !checkbox.checked) {
+                    // 需要选中但未选中 - 点击选中
+                    if (config.debug) {
+                        utils.log(`   ✅ 点击选中索引 ${i}`);
                     }
-                }
-
-                if (input && !input.checked) {
-                    // 直接调用.click()方法（不手动设置checked）
-                    input.click();
+                    checkbox.click();
                     successCount++;
-                    await utils.sleep(100); // 短暂延迟确保事件处理完成
+                    await utils.sleep(200); // 和测试脚本一样等待200ms
+                    
+                    // 验证是否真的选中了
+                    if (config.debug && !checkbox.checked) {
+                        utils.log(`   ⚠️ 警告：点击后索引 ${i} 仍未选中！`);
+                    }
+                } else if (!shouldBeChecked && checkbox.checked) {
+                    // 不需要选中但已选中 - 点击取消
+                    if (config.debug) {
+                        utils.log(`   ❌ 点击取消索引 ${i}`);
+                    }
+                    checkbox.click();
+                    await utils.sleep(100);
                 }
             }
-
-            // 步骤3: 确认Vue数据同步（.click()应该已触发，这里做最后确认）
-            await utils.sleep(300);
-            if (group) {
-                // 再次确认Vue数据（防止某些情况下.click()未完全同步）
-                VueUtils.updateData(questionItem, 'stuAnswer', indexes.join(''));
+            
+            if (config.debug) {
+                const finalCheckedCount = questionItem.querySelectorAll('input[type="checkbox"]:checked').length;
+                utils.log(`   📊 填充完成: 成功操作 ${successCount} 个选项，最终选中 ${finalCheckedCount} 个`);
             }
+
+            // 最后等待一下确保所有事件处理完成
+            await utils.sleep(300);
 
             return successCount > 0;
         },
