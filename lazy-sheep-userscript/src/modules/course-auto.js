@@ -14,7 +14,8 @@ export default class CourseAuto {
         this.config = {
             playbackSpeed: Config.get('course.playbackSpeed', 2.0),
             instantFinish: Config.get('course.instantFinish', false),
-            autoNext: Config.get('course.autoNext', true)
+            autoNext: Config.get('course.autoNext', true),
+            skipCompleted: Config.get('course.skipCompleted', false) // 新增：是否跳过已完成的课程
         };
         this.stats = {
             videosCompleted: 0,
@@ -64,8 +65,15 @@ export default class CourseAuto {
 
         let nextPoint = currentPoint.nextElementSibling;
         
+        // 查找下一个课程节点
         while (nextPoint) {
-            if (nextPoint.classList.contains('point-item-box') && !this.isPointCompleted(nextPoint)) {
+            if (nextPoint.classList.contains('point-item-box')) {
+                // 如果配置为跳过已完成的课程，则检查完成状态
+                if (this.config.skipCompleted && this.isPointCompleted(nextPoint)) {
+                    logger.debug('[Course] 跳过已完成的课程');
+                    nextPoint = nextPoint.nextElementSibling;
+                    continue;
+                }
                 return nextPoint;
             }
             nextPoint = nextPoint.nextElementSibling;
@@ -124,10 +132,13 @@ export default class CourseAuto {
         try {
             logger.info('[Course] 处理视频页面...');
 
-            const currentPoint = this.getCurrentPointItem();
-            if (currentPoint && this.isPointCompleted(currentPoint)) {
-                logger.info('[Course] 当前视频已完成，跳过');
-                return await this.navigateToNext();
+            // 如果配置为跳过已完成的课程，检查当前课程是否已完成
+            if (this.config.skipCompleted) {
+                const currentPoint = this.getCurrentPointItem();
+                if (currentPoint && this.isPointCompleted(currentPoint)) {
+                    logger.info('[Course] 当前视频已完成，跳过');
+                    return await this.navigateToNext();
+                }
             }
 
             const startTime = Date.now();
@@ -333,6 +344,9 @@ export default class CourseAuto {
         }
         if (config.autoNext !== undefined) {
             Config.set('course.autoNext', config.autoNext);
+        }
+        if (config.skipCompleted !== undefined) {
+            Config.set('course.skipCompleted', config.skipCompleted);
         }
 
         Config.save();

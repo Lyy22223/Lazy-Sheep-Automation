@@ -226,6 +226,11 @@
                 <span>自动跳转下一节</span>
                 <a-switch v-model:checked="courseSettings.autoNext" />
               </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>跳过已完成的课程</span>
+                <a-switch v-model:checked="courseSettings.skipCompleted" />
+              </div>
             </a-space>
           </a-card>
 
@@ -254,7 +259,7 @@
 
           <a-alert
             message="使用说明"
-            description="1. 设置播放速度和选项后，点击'开始刷课'。2. 系统会自动播放视频、处理习题并跳转下一节。3. 一键完成模式会直接快进到视频结尾。"
+            description="1. 默认按顺序播放所有课程，勾选'跳过已完成'可自动跳过进度为100%的课程。2. 一键完成模式会直接快进到视频结尾。3. 系统会自动播放视频、处理习题并跳转下一节。"
             type="info"
             show-icon
           />
@@ -489,7 +494,8 @@ const isCourseRunning = ref(false);
 const courseSettings = ref({
   playbackSpeed: Config.get('course.playbackSpeed', 2.0),
   instantFinish: Config.get('course.instantFinish', false),
-  autoNext: Config.get('course.autoNext', true)
+  autoNext: Config.get('course.autoNext', true),
+  skipCompleted: Config.get('course.skipCompleted', false)
 });
 const courseStats = ref({
   videosCompleted: 0,
@@ -760,7 +766,8 @@ const handleStartCourse = async () => {
     courseAutoInstance.updateConfig({
       playbackSpeed: courseSettings.value.playbackSpeed,
       instantFinish: courseSettings.value.instantFinish,
-      autoNext: courseSettings.value.autoNext
+      autoNext: courseSettings.value.autoNext,
+      skipCompleted: courseSettings.value.skipCompleted
     });
 
     isCourseRunning.value = true;
