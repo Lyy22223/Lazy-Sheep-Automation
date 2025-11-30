@@ -2,7 +2,22 @@
 
 ## 🚀 快速开始
 
-### 1. 安装依赖
+### 1. 启动Docker服务（推荐）
+
+```bash
+# 启动PostgreSQL + Redis
+docker-dev.bat start
+
+# 等待5秒让服务启动完成
+```
+
+**Docker服务：**
+- PostgreSQL: `localhost:5432`
+- Redis: `localhost:6379`
+- PgAdmin: http://localhost:5050 (admin@lazy-sheep.local / admin)
+- Redis Commander: http://localhost:8081
+
+### 2. 安装Python依赖
 
 ```bash
 # 创建虚拟环境
@@ -15,7 +30,7 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. 启动开发服务器
+### 3. 启动开发服务器
 
 **方式1：使用启动脚本（推荐）**
 ```bash
@@ -28,7 +43,7 @@ dev.bat
 python run.py
 ```
 
-### 3. 访问服务
+### 4. 访问服务
 
 - API地址: http://localhost:8000
 - 交互式文档: http://localhost:8000/docs
@@ -59,47 +74,63 @@ lazy-sheep-backend/
 
 ---
 
+## 🐳 Docker管理
+
+### 常用命令
+
+```bash
+# 启动服务
+docker-dev.bat start
+
+# 停止服务
+docker-dev.bat stop
+
+# 重启服务
+docker-dev.bat restart
+
+# 查看日志
+docker-dev.bat logs
+
+# 查看状态
+docker-dev.bat status
+
+# 清理数据（危险！会删除所有数据）
+docker-dev.bat clean
+```
+
+### 直接使用docker-compose
+
+```bash
+# 启动
+docker-compose -f docker-compose.dev.yml up -d
+
+# 停止
+docker-compose -f docker-compose.dev.yml down
+
+# 查看日志
+docker-compose -f docker-compose.dev.yml logs -f postgres
+
+# 进入容器
+docker exec -it lazy-sheep-postgres psql -U lazy_user -d lazy_sheep
+```
+
+---
+
 ## ⚙️ 配置说明
 
-### 数据库切换
+### 数据库配置
 
-**开发阶段（当前）：使用SQLite**
+**.env.local 默认使用Docker PostgreSQL**
 ```ini
-# .env.local
-DATABASE_URL=sqlite+aiosqlite:///./data/questions.db
-```
-
-**测试PostgreSQL：**
-```ini
-# 1. 安装PostgreSQL
-choco install postgresql15 -y
-
-# 2. 创建数据库
-psql -U postgres
-CREATE DATABASE lazy_sheep;
-\q
-
-# 3. 修改.env.local
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/lazy_sheep
-```
-
-### Redis配置
-
-**开发时不需要Redis**
-```ini
-REDIS_ENABLED=false
-```
-
-**需要Redis时：**
-```ini
-# 1. 安装Redis
-choco install redis-64 -y
-
-# 2. 启动Redis
-redis-server
-
-# 3. 修改.env.local
+DATABASE_URL=postgresql+asyncpg://lazy_user:lazy_password@localhost:5432/lazy_sheep
 REDIS_ENABLED=true
+REDIS_URL=redis://localhost:6379/0
+```
+
+**如果不想用Docker，可以切换回SQLite：**
+```ini
+DATABASE_URL=sqlite+aiosqlite:///./data/questions.db
+REDIS_ENABLED=false
 ```
 
 ---
