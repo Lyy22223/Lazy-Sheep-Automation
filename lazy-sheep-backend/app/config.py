@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     redis_enabled: bool = True
     
     # DeepSeek AI
-    deepseek_api_key: str = ""
+    deepseek_api_key: str = "sk-e673fad6d0b3459caab490cb0005a0c7"
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
     

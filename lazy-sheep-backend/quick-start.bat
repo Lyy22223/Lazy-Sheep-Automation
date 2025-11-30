@@ -25,4 +25,6 @@ echo [*] API Docs: http://localhost:8000/docs
 echo [*] Press Ctrl+C to stop
 echo.
 
+REM 设置Python路径，确保优先使用项目目录
+set PYTHONPATH=%CD%;%PYTHONPATH%
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000

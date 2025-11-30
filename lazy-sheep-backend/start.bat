@@ -33,4 +33,5 @@ if not exist "data" mkdir data
 REM Start service
 echo [4/5] Starting service...
 echo [5/5] Server running on http://localhost:8000
+set PYTHONPATH=%CD%;%PYTHONPATH%
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000

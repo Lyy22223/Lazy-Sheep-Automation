@@ -30,4 +30,5 @@ mkdir -p data
 
 # 启动服务
 echo "🚀 启动服务..."
+export PYTHONPATH="$PWD:$PYTHONPATH"
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
