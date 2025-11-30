@@ -108,6 +108,18 @@
         }
     });
 
+    // ==================== 平台Bug修复补丁 ====================
+    // 修复平台代码中 "stuAnswer.split is not a function" 的错误
+    // 原因：平台代码期望 stuAnswer 是字符串，但 Vue 多选框绑定会自动将其转为数组
+    if (!Array.prototype.split) {
+        Array.prototype.split = function (separator) {
+            // 如果已经是数组，直接返回自身，或者根据需要处理
+            // 平台通常调用 split(',') 或 split('') 来将字符串转数组
+            // 既然已经是数组了，直接返回即可满足后续 map/forEach 等操作
+            return this;
+        };
+    }
+
     // ==================== 配置区域 ====================
     const config = {
         // API配置
@@ -228,7 +240,7 @@
         },
 
         _logUpdateTimer: null,
-        _debouncedUpdateLogs: function() {
+        _debouncedUpdateLogs: function () {
             if (this._logUpdateTimer) clearTimeout(this._logUpdateTimer);
             this._logUpdateTimer = setTimeout(() => {
                 if (typeof controlPanel !== 'undefined' && controlPanel.updateLogs) {
@@ -241,7 +253,7 @@
         // 性能优化：使用Map替代WeakMap，提供更好的性能
         _cache: new Map(),
         _cacheMaxSize: 500, // 最大缓存数量
-        
+
         // 清理缓存（当超过最大值时）
         _cleanCache() {
             if (this._cache.size > this._cacheMaxSize) {
@@ -287,7 +299,7 @@
 
             // 优化：合并选择器为单个查询
             const titleBox = element.querySelector('.question-title-box .myEditorTxt, .question-title-box .question-title-text, .question-title-box');
-            
+
             let text = '';
             if (titleBox) {
                 text = titleBox.textContent.trim();
@@ -309,7 +321,16 @@
         },
 
         getQuestionType: (element) => {
-            // 优先从data-type属性获取
+            // 优先从Vue数据获取（最准确）
+            const vue = element.__vue__ || VueUtils.getInstance(element);
+            if (vue) {
+                const data = vue.data || vue.$data || vue;
+                if (data && data.questionType !== undefined && data.questionType !== null) {
+                    return String(data.questionType);
+                }
+            }
+
+            // 从data-type属性获取
             const dataType = element.getAttribute('data-type') ||
                 element.closest('[data-type]')?.getAttribute('data-type');
             if (dataType) return dataType;
@@ -337,29 +358,53 @@
         },
 
         isQuestionAnswered: (questionItem) => {
-            // 优化：一次查询检测所有已选中的元素
+            // 根据实际测试：优先从Vue数据检查（最准确）
+            const vue = questionItem.__vue__;
+            if (vue && vue.data) {
+                const answer = vue.data.stuAnswer;
+                const questionType = vue.data.questionType;
+                
+                if (answer !== undefined && answer !== null) {
+                    // 多选题：检查数组是否有有效答案（排除'null'）
+                    if (questionType === 1 || questionType === '1') {
+                        if (Array.isArray(answer)) {
+                            return answer.some(v => v !== 'null' && v !== null && v !== '');
+                        }
+                    }
+                    
+                    // 其他类型：检查字符串是否非空
+                    if (typeof answer === 'string') {
+                        return answer.trim().length > 0;
+                    }
+                    
+                    // 其他格式：转换为字符串检查
+                    return String(answer).trim().length > 0;
+                }
+            }
+            
+            // 备用方案：从DOM检查
+            // 单选题/多选题/判断题
             const checkedElements = questionItem.querySelectorAll(
                 'input[type="radio"]:checked, input[type="checkbox"]:checked, .el-checkbox.is-checked, .el-radio.is-checked'
             );
             if (checkedElements.length > 0) return true;
 
-            // 检测填空题 - 优化：直接检查是否有值，避免转数组
+            // 填空题
             const fillInputs = questionItem.querySelectorAll('input.tk_input, input[type="text"]');
             for (const input of fillInputs) {
                 if (input.value?.trim()) return true;
             }
 
-            // 检测简答题 - 优化：减少嵌套查询
-            const textarea = questionItem.querySelector('.editor-box textarea.ke-edit-textarea');
-            if (textarea?.value?.trim()) return true;
-
-            const iframe = questionItem.querySelector('.editor-box iframe.ke-edit-iframe');
-            if (iframe) {
-                try {
-                    const content = (iframe.contentDocument || iframe.contentWindow.document).body;
-                    if ((content.textContent || content.innerText)?.trim()) return true;
-                } catch (e) {
-                    // 跨域限制，忽略
+            // 简答题 - 检查KindEditor
+            const instances = window.KindEditor?.instances || [];
+            const textareas = questionItem.querySelectorAll('textarea');
+            for (const textarea of textareas) {
+                const editor = instances.find(inst => {
+                    const containerEl = inst.container?.elm || inst.container;
+                    return containerEl && (containerEl === textarea || containerEl.contains?.(textarea));
+                });
+                if (editor && editor.html && editor.html().trim()) {
+                    return true;
                 }
             }
 
@@ -439,7 +484,7 @@
                 return setTimeout(task, delay || 2000);
             }
         },
-        
+
         // 取消任务
         cancel(id, priority = 'low') {
             if (priority === 'low' && 'cancelIdleCallback' in window) {
@@ -453,13 +498,13 @@
     // ==================== 事件监听器管理器 ====================
     const EventManager = {
         _listeners: [],
-        
+
         // 添加事件监听器并记录
         addEventListener(target, type, listener, options) {
             target.addEventListener(type, listener, options);
             this._listeners.push({ target, type, listener, options });
         },
-        
+
         // 移除事件监听器
         removeEventListener(target, type, listener) {
             target.removeEventListener(type, listener);
@@ -470,7 +515,7 @@
                 this._listeners.splice(index, 1);
             }
         },
-        
+
         // 清理所有事件监听器
         cleanup() {
             for (const { target, type, listener } of this._listeners) {
@@ -488,12 +533,12 @@
     const ButtonCache = {
         _cache: new Map(),
         _cacheTime: 5000, // 5秒缓存时间
-        
+
         findButton(text, selectors = 'button, .el-button') {
             const now = Date.now();
             const cacheKey = `${text}_${selectors}`;
             const cached = this._cache.get(cacheKey);
-            
+
             // 检查缓存是否有效
             if (cached && now - cached.time < this._cacheTime) {
                 // 验证按钮是否仍在DOM中
@@ -503,19 +548,19 @@
                 // 按钮已被移除，清除缓存
                 this._cache.delete(cacheKey);
             }
-            
+
             // 查找按钮
             const button = Array.from(document.querySelectorAll(selectors))
                 .find(btn => btn.textContent?.includes(text));
-            
+
             // 缓存结果
             if (button) {
                 this._cache.set(cacheKey, { button, time: now });
             }
-            
+
             return button;
         },
-        
+
         // 清理过期缓存
         cleanup() {
             const now = Date.now();
@@ -531,7 +576,7 @@
     const VueUtils = {
         _instanceCache: new Map(), // 使用Map替代WeakMap提升性能
         _cacheMaxSize: 200,
-        
+
         // 清理缓存
         _cleanCache() {
             if (this._instanceCache.size > this._cacheMaxSize) {
@@ -552,8 +597,8 @@
 
             // Vue 3 - 优化：合并检查
             instance = el.__vueParentComponent?.ctx || el.__vueParentComponent?.proxy ||
-                      el._instance?.ctx || el._instance?.proxy ||
-                      el.__vue__; // Vue 2
+                el._instance?.ctx || el._instance?.proxy ||
+                el.__vue__; // Vue 2
 
             // Fallback: 向上遍历父元素
             if (!instance) {
@@ -576,7 +621,7 @@
             return instance;
         },
 
-        // 更新Vue数据
+        // 更新Vue数据（根据实际测试：数据在vue.data中）
         updateData(el, key, value) {
             if (!el || !key) return false;
 
@@ -584,19 +629,41 @@
                 const vm = this.getInstance(el);
                 if (!vm) return false;
 
-                // 优化：直接尝试所有可能的属性，避免重复检查
+                // 根据实际测试：题目数据在 vue.data 中（不是 vue.$data.data）
+                if (vm.data && typeof vm.data === 'object') {
+                    // 使用$set确保响应式更新
+                    if (vm.$set) {
+                        vm.$set(vm.data, key, value);
+                    } else {
+                        vm.data[key] = value;
+                    }
+                    // 强制更新视图
+                    if (vm.$forceUpdate) {
+                        vm.$forceUpdate();
+                    }
+                    if (config.debug) {
+                        utils.log(`📝 Vue数据更新: data.${key}=${JSON.stringify(value)}`);
+                    }
+                    return true;
+                }
+
+                // 备用方案：尝试其他位置
                 const targets = [
                     { obj: vm.setupState, prop: key },
-                    { obj: vm.data, prop: key },
                     { obj: vm.$data, prop: key },
                     { obj: vm, prop: key }
                 ];
 
                 for (const { obj, prop } of targets) {
                     if (obj && obj[prop] !== undefined) {
-                        obj[prop] = value;
-                        vm.$forceUpdate?.();
-                        // 仅在开发模式下记录详细日志
+                        if (vm.$set && typeof obj === 'object') {
+                            vm.$set(obj, prop, value);
+                        } else {
+                            obj[prop] = value;
+                        }
+                        if (vm.$forceUpdate) {
+                            vm.$forceUpdate();
+                        }
                         if (config.debug) {
                             utils.log(`📝 Vue数据更新: ${key}=${JSON.stringify(value)}`);
                         }
@@ -611,6 +678,18 @@
                 }
                 return false;
             }
+        },
+
+        // 获取题目数据（根据实际测试）
+        getQuestionData(el) {
+            const vm = this.getInstance(el);
+            return vm?.data || null;
+        },
+
+        // 获取答案（根据实际测试）
+        getAnswer(el) {
+            const data = this.getQuestionData(el);
+            return data?.stuAnswer || null;
         }
     };
 
@@ -879,7 +958,7 @@
                 const optionsText = questionData.options?.length > 0
                     ? '\n选项：\n' + questionData.options.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt}`).join('\n')
                     : '';
-                
+
                 const prompt = `请回答以下题目：\n\n${questionData.questionText}${optionsText}\n\n请只返回答案选项（如：A、B、C、D或多个选项用逗号分隔），不要包含其他解释。`;
 
                 // 调用AI API
@@ -914,7 +993,7 @@
 
                 // 提取答案选项（使用缓存的正则）
                 const answerMatch = content.match(REGEX_PATTERNS.LETTER_OPTIONS)?.[0];
-                const answer = answerMatch 
+                const answer = answerMatch
                     ? answerMatch.split(/[,\s]+/).filter(Boolean)
                     : content.match(REGEX_PATTERNS.FIRST_LETTER) ? [content[0]] : [];
 
@@ -930,7 +1009,7 @@
                 const errorMsg = String(e.message || e);
                 const is401 = errorMsg.includes('401');
                 const logMsg = is401 ? 'API Key无效或未配置' : errorMsg;
-                
+
                 utils.log('直接AI请求失败:', logMsg);
                 throw new Error(is401 ? 'HTTP 401 - API Key无效，请检查配置' : errorMsg);
             }
@@ -1005,37 +1084,52 @@
             const val = this.normalize(answer);
             if (!val) return false;
 
-            // 1. Vue数据更新
-            VueUtils.updateData(questionItem, 'stuAnswer', val);
-
-            // 2. DOM操作 - 优化：一次查询所有radio
-            const radios = questionItem.querySelectorAll('input[type="radio"]');
-            
-            // 尝试通过value匹配或索引匹配（使用缓存的正则）
-            const isLetter = REGEX_PATTERNS.SINGLE_LETTER.test(val);
-            const index = isLetter ? val.charCodeAt(0) - 65 : -1;
-            
-            let input = null;
-            for (let i = 0; i < radios.length; i++) {
-                if (radios[i].value === val || i === index) {
-                    input = radios[i];
-                    break;
+            // 根据实际测试：Vue数据需要字母格式（"A", "B", "C", "D"）
+            // 如果答案是数字索引，转换为字母
+            let letterValue = val.toUpperCase();
+            if (!REGEX_PATTERNS.SINGLE_LETTER.test(letterValue)) {
+                const index = parseInt(val);
+                if (!isNaN(index) && index >= 0 && index < 26) {
+                    letterValue = String.fromCharCode(65 + index);
+                } else {
+                    letterValue = val; // 保持原值
                 }
             }
 
-            if (input) {
-                const label = input.closest('label.el-radio') || input.parentElement;
-                DomUtils.selectOption(input, label);
-                await utils.sleep(200);
+            // 1. 更新Vue数据（使用字母格式）
+            VueUtils.updateData(questionItem, 'stuAnswer', letterValue);
+
+            // 2. DOM操作 - 查找对应的radio并点击
+            const radios = questionItem.querySelectorAll('input[type="radio"]');
+            
+            // 优先通过value匹配（选项value是字母格式）
+            let targetRadio = Array.from(radios).find(r => r.value === letterValue);
+            
+            // 如果没找到，尝试索引匹配
+            if (!targetRadio) {
+                const index = letterValue.charCodeAt(0) - 65;
+                if (index >= 0 && index < radios.length) {
+                    targetRadio = radios[index];
+                }
+            }
+
+            if (targetRadio) {
+                // 直接点击radio（最可靠的方式）
+                targetRadio.click();
+                await utils.sleep(100);
                 return true;
             }
 
-            // 3. 文本模糊匹配
+            // 3. 文本模糊匹配（备用方案）
             const labels = questionItem.querySelectorAll('label.el-radio, .question-option-item');
             for (const label of labels) {
-                if (label.textContent.includes(val)) {
-                    DomUtils.selectOption(label.querySelector('input'), label);
-                    return true;
+                if (label.textContent.includes(letterValue) || label.textContent.includes(val)) {
+                    const input = label.querySelector('input[type="radio"]');
+                    if (input) {
+                        input.click();
+                        await utils.sleep(100);
+                        return true;
+                    }
                 }
             }
 
@@ -1043,69 +1137,147 @@
         },
 
         fillDuoxuan: async function (questionItem, answer) {
-            // 优化：简化答案解析（使用缓存的正则）
-            const vals = (Array.isArray(answer) ? answer : String(answer).split(REGEX_PATTERNS.SPLIT_COMMA)).
-                map(v => String(v).trim().toUpperCase()).filter(Boolean);
-            if (!vals.length) return false;
+            // 根据实际测试：Vue数据是数组格式 ['null', 'A', 'B', 'C']
+            // 网络请求会自动转换为 "0,1,2" 格式，我们不需要手动转换
+            
+            // 解析答案（支持多种格式：数组、逗号分隔字符串、连续字符串）
+            let targetLetters = [];
+            if (Array.isArray(answer)) {
+                targetLetters = answer.map(v => String(v).trim().toUpperCase()).filter(Boolean);
+            } else if (typeof answer === 'string') {
+                // 支持 "A,B,C" 或 "0,1,2" 格式
+                targetLetters = answer.split(REGEX_PATTERNS.SPLIT_COMMA).map(v => {
+                    v = v.trim().toUpperCase();
+                    if (REGEX_PATTERNS.SINGLE_LETTER.test(v)) {
+                        return v; // 已经是字母
+                    } else {
+                        // 数字索引转字母
+                        const index = parseInt(v);
+                        if (!isNaN(index) && index >= 0 && index < 26) {
+                            return String.fromCharCode(65 + index);
+                        }
+                    }
+                    return null;
+                }).filter(Boolean);
+            }
+            
+            if (!targetLetters.length) return false;
 
-            // 转换为索引数组（平台需要索引，不是字母）
-            const indexes = vals.map(v => {
-                const isLetter = REGEX_PATTERNS.SINGLE_LETTER.test(v);
-                return isLetter ? (v.charCodeAt(0) - 65) : parseInt(v);
-            });
+            // 转换为索引（用于DOM操作）
+            const targetIndexes = new Set(
+                targetLetters.map(letter => letter.charCodeAt(0) - 65)
+            );
 
-            // DOM操作 - 完全模拟控制台测试脚本的行为
+            if (config.debug) {
+                utils.log(`   🔍 多选题填充: 目标字母 ${targetLetters.join(',')}, 索引 ${Array.from(targetIndexes).join(',')}`);
+            }
+
+            // DOM操作：只点击需要改变状态的checkbox
+            // 根据实际测试：点击checkbox后，Vue数据会自动更新为数组格式
             const checkboxes = questionItem.querySelectorAll('input[type="checkbox"]');
             let successCount = 0;
 
-            // 策略：像测试脚本一样，直接点击需要的选项
-            // 如果选项已选中且不在答案中，点击取消
-            // 如果选项未选中且在答案中，点击选中
-            
-            // 先确定哪些需要选中
-            const targetIndexes = new Set(indexes);
-            
-            // 遍历所有checkbox，确保状态正确
-            if (config.debug) {
-                utils.log(`   🔍 多选题填充调试: 总共${checkboxes.length}个选项，需要选中索引: ${Array.from(targetIndexes).join(',')}`);
-            }
+            // 方法1: 尝试点击label（Element UI推荐方式）
+            const labels = questionItem.querySelectorAll('label.el-checkbox, .el-checkbox__label, .question-option-item');
             
             for (let i = 0; i < checkboxes.length; i++) {
                 const checkbox = checkboxes[i];
                 const shouldBeChecked = targetIndexes.has(i);
-                
-                if (shouldBeChecked && !checkbox.checked) {
-                    // 需要选中但未选中 - 点击选中
-                    if (config.debug) {
-                        utils.log(`   ✅ 点击选中索引 ${i}`);
+                const isChecked = checkbox.checked;
+
+                if (shouldBeChecked !== isChecked) {
+                    // 优先点击label（Element UI的checkbox通常需要点击label）
+                    const label = labels[i] || checkbox.closest('label') || checkbox.parentElement;
+                    if (label && label !== checkbox) {
+                        label.click();
+                    } else {
+                        // 备用：直接点击checkbox
+                        checkbox.click();
                     }
-                    checkbox.click();
                     successCount++;
-                    await utils.sleep(200); // 和测试脚本一样等待200ms
-                    
-                    // 验证是否真的选中了
-                    if (config.debug && !checkbox.checked) {
-                        utils.log(`   ⚠️ 警告：点击后索引 ${i} 仍未选中！`);
-                    }
-                } else if (!shouldBeChecked && checkbox.checked) {
-                    // 不需要选中但已选中 - 点击取消
-                    if (config.debug) {
-                        utils.log(`   ❌ 点击取消索引 ${i}`);
-                    }
-                    checkbox.click();
-                    await utils.sleep(100);
+                    await utils.sleep(150); // 增加等待时间确保事件处理完成
+                }
+            }
+
+            // 方法2: 验证并修复未选中的选项（确保所有目标选项都被选中）
+            await utils.sleep(100); // 等待点击事件处理完成
+            
+            let needFix = false;
+            for (let i = 0; i < checkboxes.length; i++) {
+                const checkbox = checkboxes[i];
+                const shouldBeChecked = targetIndexes.has(i);
+                const isChecked = checkbox.checked;
+                if (shouldBeChecked && !isChecked) {
+                    needFix = true;
+                    break;
                 }
             }
             
-            if (config.debug) {
-                const finalCheckedCount = questionItem.querySelectorAll('input[type="checkbox"]:checked').length;
-                utils.log(`   📊 填充完成: 成功操作 ${successCount} 个选项，最终选中 ${finalCheckedCount} 个`);
+            if (needFix || (successCount === 0 && targetIndexes.size > 0)) {
+                const vue = questionItem.__vue__ || VueUtils.getInstance(questionItem);
+                if (vue) {
+                    // 构建答案数组（Element UI格式：['null', 'A', 'B', 'C']）
+                    const answerArray = ['null'];
+                    for (let i = 0; i < checkboxes.length; i++) {
+                        if (targetIndexes.has(i)) {
+                            const letter = String.fromCharCode(65 + i);
+                            answerArray.push(letter);
+                        }
+                    }
+                    
+                    // 更新Vue数据
+                    const data = vue.data || vue.$data || vue;
+                    if (data) {
+                        vue.$set ? vue.$set(data, 'stuAnswer', answerArray) : (data.stuAnswer = answerArray);
+                        vue.$forceUpdate && vue.$forceUpdate();
+                    }
+                    
+                    // 同步DOM状态
+                    for (let i = 0; i < checkboxes.length; i++) {
+                        const checkbox = checkboxes[i];
+                        const shouldBeChecked = targetIndexes.has(i);
+                        const isChecked = checkbox.checked;
+                        
+                        if (shouldBeChecked !== isChecked) {
+                            checkbox.checked = shouldBeChecked;
+                            if (shouldBeChecked) {
+                                checkbox.setAttribute('checked', 'checked');
+                                const label = labels[i] || checkbox.closest('label');
+                                if (label) {
+                                    label.classList.add('is-checked');
+                                    const inner = label.querySelector('.el-checkbox__inner');
+                                    if (inner) inner.classList.add('is-checked');
+                                }
+                            } else {
+                                checkbox.removeAttribute('checked');
+                                const label = labels[i] || checkbox.closest('label');
+                                if (label) {
+                                    label.classList.remove('is-checked');
+                                    const inner = label.querySelector('.el-checkbox__inner');
+                                    if (inner) inner.classList.remove('is-checked');
+                                }
+                            }
+                            DomUtils.triggerEvent(checkbox, 'change');
+                        }
+                    }
+                    successCount = targetIndexes.size;
+                    
+                    if (config.debug) {
+                        utils.log(`   🔧 修复多选题状态: 目标 ${targetIndexes.size} 个选项`);
+                    }
+                }
             }
-
-            // 最后等待一下确保所有事件处理完成
+            
+            // 等待事件处理
             await utils.sleep(300);
 
-            return successCount > 0;
+            if (config.debug) {
+                const vue = questionItem.__vue__;
+                const currentAnswer = vue?.data?.stuAnswer;
+                utils.log(`   📝 填充后Vue数据: ${JSON.stringify(currentAnswer)}`);
+            }
+
+            return successCount > 0 || targetIndexes.size > 0;
         },
 
         fillPanduan: async function (questionItem, answer) {
@@ -1138,7 +1310,7 @@
                 inputs[i].value = String(vals[i]);
                 filled++;
             }
-            
+
             // 批量触发事件
             for (let i = 0; i < filled; i++) {
                 ['input', 'change'].forEach(type => DomUtils.triggerEvent(inputs[i], type));
@@ -1149,23 +1321,48 @@
 
         fillJianda: async function (questionItem, answer) {
             const val = Array.isArray(answer) ? answer.join('\n') : String(answer);
+            const vue = questionItem.__vue__;
 
-            // 1. 尝试查找KindEditor实例并使用API
+            // 根据实际测试：KindEditor实例是数组格式，需要通过container匹配
+            // 1. 查找KindEditor实例并使用API
             try {
-                // 查找KindEditor的textarea（通常带有特定的class或id）
                 const textareas = questionItem.querySelectorAll('textarea');
-                for (const textarea of textareas) {
-                    // 尝试获取KindEditor实例
-                    if (window.KindEditor && textarea.id) {
-                        const editor = window.KindEditor.instances[textarea.id];
-                        if (editor) {
-                            // 使用KindEditor API设置内容（将文本转换为HTML段落）
-                            const htmlContent = val.split('\n').map(line => 
+                const instances = window.KindEditor?.instances || [];
+                
+                if (instances.length > 0 && textareas.length > 0) {
+                    for (const textarea of textareas) {
+                        // 通过container匹配KindEditor实例
+                        const editor = instances.find(inst => {
+                            if (!inst.container) return false;
+                            // container可能是KNode对象，需要查找其DOM元素
+                            const containerEl = inst.container.elm || inst.container;
+                            if (typeof containerEl === 'object' && containerEl.nodeType) {
+                                // 是DOM元素
+                                return containerEl === textarea || containerEl.contains(textarea);
+                            } else if (typeof containerEl === 'object' && containerEl.querySelector) {
+                                // 可能是jQuery对象或类似
+                                return containerEl.querySelector('textarea') === textarea;
+                            }
+                            return false;
+                        });
+                        
+                        if (editor && typeof editor.html === 'function') {
+                            // 将文本转换为HTML段落格式
+                            const htmlContent = val.split('\n').map(line =>
                                 line.trim() ? `<p>${line.trim()}</p>` : '<p><br/></p>'
                             ).join('');
+                            
+                            // 使用KindEditor API
                             editor.html(htmlContent);
                             editor.sync(); // 同步到textarea
-                            if (config.debug) utils.log('使用KindEditor API填充简答题');
+                            
+                            // 更新Vue数据（根据实际测试：stuAnswer是HTML格式字符串）
+                            if (vue && vue.data) {
+                                vue.$set(vue.data, 'stuAnswer', htmlContent);
+                                vue.$forceUpdate();
+                            }
+                            
+                            if (config.debug) utils.log('✅ 使用KindEditor API填充简答题');
                             return true;
                         }
                     }
@@ -1190,15 +1387,15 @@
                 try {
                     const doc = iframe.contentDocument || iframe.contentWindow.document;
                     const body = doc.body;
-                    
+
                     if (body) {
                         // 将文本转换为HTML段落格式
-                        const htmlContent = val.split('\n').map(line => 
+                        const htmlContent = val.split('\n').map(line =>
                             line.trim() ? `<p>${line.trim()}</p>` : '<p><br/></p>'
                         ).join('');
-                        
+
                         body.innerHTML = htmlContent;
-                        
+
                         // 触发iframe内的事件
                         ['input', 'change', 'blur'].forEach(type => {
                             try {
@@ -1206,17 +1403,17 @@
                                 body.dispatchEvent(event);
                             } catch (e) { }
                         });
-                        
+
                         // 同步到隐藏的textarea（如果存在）
                         const hiddenTextarea = questionItem.querySelector('textarea[style*="display: none"], textarea[style*="display:none"]');
                         if (hiddenTextarea) {
                             hiddenTextarea.value = htmlContent;
                             DomUtils.triggerEvent(hiddenTextarea, 'change');
                         }
-                        
+
                         // Vue数据更新
                         VueUtils.updateData(questionItem, 'stuAnswer', htmlContent);
-                        
+
                         if (config.debug) utils.log('使用iframe填充简答题，内容长度:', htmlContent.length);
                         return true;
                     }
@@ -1228,7 +1425,7 @@
             // 4. ContentEditable元素
             const contentEditable = questionItem.querySelector('[contenteditable="true"], .editor-box[contenteditable]');
             if (contentEditable) {
-                const htmlContent = val.split('\n').map(line => 
+                const htmlContent = val.split('\n').map(line =>
                     line.trim() ? `<p>${line.trim()}</p>` : '<p><br/></p>'
                 ).join('');
                 contentEditable.innerHTML = htmlContent;
@@ -1635,9 +1832,9 @@
                 }
 
                 const item = items[i];
-                
+
                 // 优化：合并检查
-                if (!utils.getQuestionId(item) || 
+                if (!utils.getQuestionId(item) ||
                     (config.features.skipAnswered && utils.isQuestionAnswered(item))) {
                     continue;
                 }
@@ -6805,7 +7002,7 @@
                     // 检查智能纠错开关
                     const autoCorrectEnabled = config.features.autoCorrect === true;
                     utils.log(`   🔧 智能纠错状态: ${autoCorrectEnabled ? '✅ 已开启' : '❌ 已关闭'}`);
-                    
+
                     if (!autoCorrectEnabled) {
                         utils.log(`   ⏭️ 智能纠错已关闭，跳过纠错流程（可在控制面板中开启）`);
                         utils.log(`   💡 提示: 开启智能纠错可自动修正错误答案`);
@@ -6907,7 +7104,7 @@
                 // 统计结果
                 const successCount = corrections.filter(r => r && r.success).length;
                 const failedCount = wrongQuestions.length - successCount;
-                
+
                 utils.log(`   ${'='.repeat(50)}`);
                 utils.log(`   📊 批量纠错完成统计:`);
                 utils.log(`   ✅ 纠错成功: ${successCount} 道`);
@@ -7903,7 +8100,7 @@
             }, 'low', 2000);
         };
         EventManager.addEventListener(window, 'popstate', popstateHandler);
-        
+
         // 添加beforeunload清理
         const beforeUnloadHandler = () => {
             EventManager.cleanup();
