@@ -20,6 +20,14 @@ wheels/
 .installed.cfg
 *.egg
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+
 # 虚拟环境
 venv/
 env/
@@ -81,3 +89,16 @@ backend/DEEPSEEK_CONFIG.md
 *.bak
 *.cache
 
+# 构建产物
+dist/
+build/
+*.map
+
+# 备份文件
+*.backup
+*.old
+
+# 压缩文件（可选，根据项目需要）
+# *.zip
+# *.tar.gz
+# *.rar
