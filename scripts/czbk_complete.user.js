@@ -1095,59 +1095,23 @@
                             radioInner.classList.add('is-checked');
                         }
                         
-                        // 直接点击label（最可靠的方式）
-                        utils.log(`📝 直接点击label元素进行选择（方法1）...`);
+                        // 直接点击label（简化方法，参考测试代码）
+                        utils.log(`📝 直接点击label元素进行选择...`);
                         
-                        // 多次点击，确保选中
-                        for (let clickAttempt = 0; clickAttempt < 3; clickAttempt++) {
-                            label.click();
-                            await utils.sleep(100);
-                            
-                            // 每次点击后都确保状态
-                            radio.checked = true;
-                            radio.setAttribute('checked', 'checked');
-                            label.classList.add('is-checked');
-                            const radioInner = label.querySelector('.el-radio__inner');
-                            if (radioInner) {
-                                radioInner.classList.add('is-checked');
-                            }
-                        }
-                        
-                        // 等待一下让所有点击生效
-                        await utils.sleep(300);
-                        
-                        // 再次确保状态
+                        // 先设置状态
                         radio.checked = true;
                         label.classList.add('is-checked');
-                        
-                        // 验证（多次验证，确保可靠性）
-                        let isSelected = radio.checked && label.classList.contains('is-checked');
-                        
-                        // 如果验证失败，再次强制设置并点击
-                        if (!isSelected) {
-                            utils.log(`⚠️ 第一次点击验证失败，强制重新设置并点击...`);
-                            radio.checked = true;
-                            radio.setAttribute('checked', 'checked');
-                            label.classList.add('is-checked');
-                            
-                            // 使用原生事件触发
-                            try {
-                                const clickEvent = new MouseEvent('click', {
-                                    bubbles: true,
-                                    cancelable: true,
-                                    view: window
-                                });
-                                label.dispatchEvent(clickEvent);
-                                await utils.sleep(200);
-                            } catch (e) {
-                                label.click();
-                                await utils.sleep(200);
-                            }
-                            
-                            isSelected = radio.checked && label.classList.contains('is-checked');
+                        const radioInner = label.querySelector('.el-radio__inner');
+                        if (radioInner) {
+                            radioInner.classList.add('is-checked');
                         }
                         
-                        if (isSelected) {
+                        // 点击label（测试代码证明简单点击即可）
+                        label.click();
+                        await utils.sleep(300);
+                        
+                        // 验证是否选中
+                        if (radio.checked) {
                             utils.log(`✅ 单选题已选择: value=${targetValue} (${answer})`);
                             return true;
                         } else {
@@ -1643,99 +1607,36 @@
                 }
                 
                 if (checkbox) {
-                    // 先检查当前状态，避免重复操作
-                    // 但即使显示已选中，也要强制更新，确保状态正确
-                    const isCurrentlyChecked = checkbox.checked && (elCheckbox ? elCheckbox.classList.contains('is-checked') : true);
+                    // 简化方法：直接点击checkbox（参考测试代码）
+                    if (elCheckbox) {
+                        // Element Plus checkbox：先设置状态，再点击
+                        checkbox.checked = true;
+                        elCheckbox.classList.add('is-checked');
+                        const checkboxInput = elCheckbox.querySelector('.el-checkbox__input');
+                        if (checkboxInput) {
+                            checkboxInput.classList.add('is-checked');
+                        }
+                        
+                        // 点击checkbox（测试代码证明简单点击即可）
+                        const label = elCheckbox.closest('label.el-checkbox') || elCheckbox;
+                        if (label) {
+                            label.click();
+                        }
+                        await utils.sleep(200);
+                    } else {
+                        // 原生checkbox：直接点击
+                        checkbox.checked = true;
+                        checkbox.click();
+                        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                        await utils.sleep(200);
+                    }
                     
-                    // 无论当前状态如何，都强制设置（确保状态正确）
-                    if (true) {  // 总是执行，确保状态正确
-                        // 对于 Element Plus checkbox，优先通过Vue数据模型更新，避免点击导致的toggle问题
-                        if (elCheckbox) {
-                            // 方法1: 直接设置状态，不触发点击（避免toggle）
-                        checkbox.checked = true;
-                            elCheckbox.classList.add('is-checked');
-                            const checkboxInput = elCheckbox.querySelector('.el-checkbox__input');
-                            if (checkboxInput) {
-                                checkboxInput.classList.add('is-checked');
-                            }
-                            
-                            // 方法2: 触发change事件，但不点击（避免toggle）
-                            const changeEvent = new Event('change', { bubbles: true, cancelable: true });
-                            Object.defineProperty(changeEvent, 'target', { 
-                                value: checkbox, 
-                                enumerable: true,
-                                writable: false,
-                                configurable: false
-                            });
-                            checkbox.dispatchEvent(changeEvent);
-                            
-                            // 方法3: 如果Vue数据模型更新失败，才使用点击（但要确保只点击一次）
-                            await utils.sleep(50); // 短暂等待，让状态先设置
-                            
-                            // 验证状态是否已更新
-                            if (!checkbox.checked || !elCheckbox.classList.contains('is-checked')) {
-                                // 如果状态未更新，才使用点击（但只点击一次）
-                                const label = elCheckbox.closest('label.el-checkbox') || elCheckbox;
-                                if (label) {
-                                    try {
-                                        // 确保在点击前状态是正确的
-                                        checkbox.checked = true;
-                                        elCheckbox.classList.add('is-checked');
-                                        const checkboxInput2 = elCheckbox.querySelector('.el-checkbox__input');
-                                        if (checkboxInput2) {
-                                            checkboxInput2.classList.add('is-checked');
-                                        }
-                                        // 点击一次
-                                        label.click();
-                        await utils.sleep(100);
-                                    } catch (e) {
-                                        utils.log(`点击label失败: ${e.message}`);
-                                    }
-                                }
-                            }
-                            
-                            // 最终验证状态
-                            await utils.sleep(50);
-                            if (checkbox.checked && elCheckbox.classList.contains('is-checked')) {
+                    // 验证是否选中
+                    if (checkbox.checked) {
                         successCount++;
-                                utils.log(`✅ 多选题已选择: ${answer}`);
+                        utils.log(`✅ 多选题已选择: ${answer}`);
                     } else {
-                                utils.log(`⚠️ 多选题选择可能失败: ${answer} (checked=${checkbox.checked}, el-checked=${elCheckbox.classList.contains('is-checked')})`);
-                                // 最后一次尝试：直接设置状态，不点击
-                                checkbox.checked = true;
-                                elCheckbox.classList.add('is-checked');
-                                const checkboxInput3 = elCheckbox.querySelector('.el-checkbox__input');
-                                if (checkboxInput3) {
-                                    checkboxInput3.classList.add('is-checked');
-                                }
-                                successCount++; // 即使验证失败，也算成功（因为我们已经设置了状态）
-                            }
-                        } else {
-                            // 原生checkbox处理（不使用click，避免toggle）
-                            checkbox.checked = true;
-                            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                            checkbox.dispatchEvent(new Event('input', { bubbles: true }));
-                            await utils.sleep(50);
-                            successCount++;
-                            utils.log(`✅ 多选题已选择: ${answer}`);
-                        }
-                    } else {
-                        // 即使显示已选中，也要强制更新，确保状态正确
-                        // 因为可能Vue数据更新了但DOM没有同步
-                        checkbox.checked = true;
-                        if (elCheckbox) {
-                            elCheckbox.classList.add('is-checked');
-                            const checkboxInput = elCheckbox.querySelector('.el-checkbox__input');
-                            if (checkboxInput) {
-                                checkboxInput.classList.add('is-checked');
-                            }
-                            // 触发change事件，确保Vue同步
-                            const changeEvent = new Event('change', { bubbles: true, cancelable: true });
-                            checkbox.dispatchEvent(changeEvent);
-                        }
-                        await utils.sleep(50); // 等待状态同步
-                        successCount++;
-                        utils.log(`✅ 多选题已选中（强制更新）: ${answer}`);
+                        utils.log(`⚠️ 多选题选择可能失败: ${answer}`);
                     }
                 } else {
                     utils.log(`⚠️ 未找到答案 "${answer}" 对应的checkbox`);
@@ -2004,45 +1905,27 @@
                     }
                 });
                 
-                // 先设置checked属性，再触发事件
-                if (radioInput) {
+                // 简化方法：直接点击label（参考测试代码）
+                if (radioInput && label) {
+                    // 先设置状态
                     radioInput.checked = true;
-                    
-                    // 更新Element Plus的样式
-                    if (label) {
-                        label.classList.add('is-checked');
-                        const radioInner = label.querySelector('.el-radio__inner');
-                        if (radioInner) {
-                            radioInner.classList.add('is-checked');
-                        }
+                    label.classList.add('is-checked');
+                    const radioInner = label.querySelector('.el-radio__inner');
+                    if (radioInner) {
+                        radioInner.classList.add('is-checked');
                     }
                     
-                    // 触发change事件
-                    try {
-                        const changeEvent = new Event('change', { bubbles: true, cancelable: true });
-                        Object.defineProperty(changeEvent, 'target', { value: radioInput, enumerable: true });
-                        radioInput.dispatchEvent(changeEvent);
-                        
-                        // 延迟点击label
-                        if (label) {
-                            setTimeout(() => {
-                                try {
-                                    label.click();
-                                } catch (e) {
-                                    // 忽略错误
-                                }
-                            }, 10);
-                        }
-                    } catch (e) {
-                        utils.log(`⚠️ 触发change事件时出错: ${e.message}`);
-                    }
+                    // 点击label（测试代码证明简单点击即可）
+                    utils.log(`📝 直接点击label元素进行选择...`);
+                    label.click();
+                    await utils.sleep(300);
                     
-                    await utils.sleep(config.answer.delay);
-                    
-                    // 验证
-                    if (radioInput.checked || (label && label.classList.contains('is-checked'))) {
+                    // 验证是否选中
+                    if (radioInput.checked) {
                         utils.log(`✅ 判断题已选择: 选项${targetIndex} (${normalizedAnswer})`);
                         return true;
+                    } else {
+                        utils.log(`⚠️ 判断题选择验证失败`);
                     }
                 }
             }
@@ -2058,11 +1941,22 @@
             for (let i = 0; i < inputs.length && i < answers.length; i++) {
                 const input = inputs[i];
                 const answer = answers[i];
+                
+                // 直接设置值并触发事件（简化方法，参考测试代码）
                 input.value = answer;
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
+                
                 successCount++;
-                await utils.sleep(config.answer.delay);
+                // 使用较短的延迟（测试代码使用200ms）
+                await utils.sleep(200);
+            }
+            
+            // 验证填充结果
+            const filledCount = Array.from(inputs).filter(inp => inp.value && inp.value.trim()).length;
+            if (filledCount > 0) {
+                utils.log(`填空题已填写，填充了 ${filledCount} 个输入框`);
+                return true;
             }
             
             return successCount === answers.length;
