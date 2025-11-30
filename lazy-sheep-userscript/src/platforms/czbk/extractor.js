@@ -75,26 +75,39 @@ export default class CzbkExtractor {
             return QUESTION_TYPES.DUOXUAN;
         }
 
-        // 填空题：有填空输入框
-        if (questionItem.querySelector(SELECTORS.fillInput) || 
-            questionItem.querySelector('input.tk_input, input[type="text"]:not([readonly])')) {
-            return QUESTION_TYPES.TIANKONG;
-        }
-
         // 简答题：有编辑器或textarea
         if (questionItem.querySelector(SELECTORS.editorBox) || 
             questionItem.querySelector('textarea')) {
             return QUESTION_TYPES.JIANDA;
         }
 
-        // 判断题：有2个radio（真/假）
-        const radioCount = questionItem.querySelectorAll(SELECTORS.radio).length;
-        if (radioCount === 2) {
-            return QUESTION_TYPES.PANDUAN;
+        // 填空题：有填空输入框
+        if (questionItem.querySelector(SELECTORS.fillInput) || 
+            questionItem.querySelector('input.tk_input, input[type="text"]:not([readonly])')) {
+            return QUESTION_TYPES.TIANKONG;
         }
 
-        // 单选题：有radio（>2个）
-        if (radioCount > 0) {
+        // 判断题和单选题都有radio，需要进一步判断
+        const radios = questionItem.querySelectorAll(SELECTORS.radio);
+        if (radios.length > 0) {
+            // 判断题特征：
+            // 1. 有 el-radio-group 类名
+            // 2. 只有2个radio
+            // 3. 选项文本是"正确/错误"或"是/否"
+            const hasRadioGroup = questionItem.querySelector('.el-radio-group');
+            const radioLabels = Array.from(questionItem.querySelectorAll('label.el-radio, .el-radio__label')).map(l => l.textContent.trim());
+            
+            if (hasRadioGroup || radios.length === 2) {
+                // 检查是否为典型的判断题选项
+                const isJudgeOptions = radioLabels.some(text => 
+                    /^(正确|错误|对|错|是|否|√|×|T|F|True|False)$/i.test(text)
+                );
+                if (isJudgeOptions || radios.length === 2) {
+                    return QUESTION_TYPES.PANDUAN;
+                }
+            }
+            
+            // 否则是单选题
             return QUESTION_TYPES.DANXUAN;
         }
 
@@ -218,11 +231,81 @@ export default class CzbkExtractor {
      * 提取所有题目
      * 
      * 实际测试: 91个题目，选择器 .question-item-box[data-id]
+     * 刷课习题页: .question-info-box (内含多个题目)
      * 
      * @returns {Array<object>} 题目数组
      */
     extractAllQuestions() {
-        const questionItems = document.querySelectorAll(SELECTORS.questionItem);
+        // 调试日志
+        console.log('[Extractor] 查找题目元素...');
+        
+        // 首先尝试标准答题页选择器
+        let questionItems = document.querySelectorAll('.question-item-box[data-id]');
+        console.log('[Extractor] .question-item-box[data-id]:', questionItems.length);
+        
+        if (questionItems.length > 0) {
+            return Array.from(questionItems).map(item => this.extractQuestion(item));
+        }
+        
+        // 检查是否为刷课习题页（只有一个 .question-info-box 容器）
+        const exerciseContainer = document.querySelector('.answer-questions-box, .questions-lists-box');
+        console.log('[Extractor] 刷课习题容器:', exerciseContainer);
+        
+        if (exerciseContainer) {
+            // 刷课习题页：查找所有 .question-info-box 并根据内容过滤
+            const allQuestionBoxes = exerciseContainer.querySelectorAll('.question-info-box');
+            console.log('[Extractor] .question-info-box 总数:', allQuestionBoxes.length);
+            
+            const questions = [];
+            let radioCount = 0, checkboxCount = 0, judgeCount = 0, fillCount = 0, essayCount = 0;
+            
+            allQuestionBoxes.forEach(box => {
+                // 检查是否包含表单元素（题目）
+                const hasRadio = box.querySelector('input[type="radio"]');
+                const hasCheckbox = box.querySelector('input[type="checkbox"]');
+                const hasText = box.querySelector('input[type="text"]:not([readonly])');
+                const hasTextarea = box.querySelector('textarea');
+                const hasRadioGroup = box.querySelector('.el-radio-group');
+                
+                if (hasRadio && hasRadioGroup) {
+                    // 判断题（有 radio 和 el-radio-group）
+                    questions.push(box);
+                    judgeCount++;
+                } else if (hasRadio) {
+                    // 单选题（只有 radio）
+                    questions.push(box);
+                    radioCount++;
+                } else if (hasCheckbox) {
+                    // 多选题
+                    questions.push(box);
+                    checkboxCount++;
+                } else if (hasText) {
+                    // 填空题
+                    questions.push(box);
+                    fillCount++;
+                } else if (hasTextarea) {
+                    // 简答题
+                    questions.push(box);
+                    essayCount++;
+                }
+            });
+            
+            console.log('[Extractor] 单选题:', radioCount);
+            console.log('[Extractor] 多选题:', checkboxCount);
+            console.log('[Extractor] 判断题:', judgeCount);
+            console.log('[Extractor] 填空题:', fillCount);
+            console.log('[Extractor] 简答题:', essayCount);
+            console.log('[Extractor] 刷课习题页总题目数:', questions.length);
+            
+            if (questions.length > 0) {
+                return questions.map(item => this.extractQuestion(item));
+            }
+        }
+        
+        // 最后尝试其他选择器
+        questionItems = document.querySelectorAll('.question-item, .questionItem');
+        console.log('[Extractor] .question-item, .questionItem:', questionItems.length);
+        
         return Array.from(questionItems).map(item => this.extractQuestion(item));
     }
 
