@@ -13,9 +13,11 @@ export default {
     // ==================== 题目容器 ====================
 
     /**
-     * 题目容器（91个题目，每个都有data-id和__vue__）
+     * 题目容器
+     * - 答题页面: .question-item-box[data-id] （91个题目，每个都有data-id和__vue__）
+     * - 刷课习题页: .question-item, .question-info-box, .questionItem （旧版兼容）
      */
-    questionItem: '.question-item-box[data-id]',
+    questionItem: '.question-item-box[data-id], .question-item, .question-info-box, .questionItem',
 
     /**
      * 题目内容容器

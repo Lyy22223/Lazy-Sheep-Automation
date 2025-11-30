@@ -57,30 +57,43 @@ export default class CzbkExtractor {
             return typeMap[parent.id] || QUESTION_TYPES.DANXUAN;
         }
 
-        // 方法2: 从 Vue 数据获取
+        // 方法2: 从 data-type 属性获取 (刷课习题页可能用)
+        const dataType = questionItem.getAttribute('data-type');
+        if (dataType !== null) {
+            return String(dataType);
+        }
+
+        // 方法3: 从 Vue 数据获取
         const vueData = VueUtils.getQuestionData(questionItem);
         if (vueData?.questionType != null) {
             return String(vueData.questionType);
         }
 
-        // 方法3: 从 DOM 结构推断
+        // 方法4: 从 DOM 结构推断
+        // 多选题：有checkbox
         if (questionItem.querySelector(SELECTORS.checkbox)) {
             return QUESTION_TYPES.DUOXUAN;
         }
 
-        if (questionItem.querySelector(SELECTORS.fillInput)) {
+        // 填空题：有填空输入框
+        if (questionItem.querySelector(SELECTORS.fillInput) || 
+            questionItem.querySelector('input.tk_input, input[type="text"]:not([readonly])')) {
             return QUESTION_TYPES.TIANKONG;
         }
 
-        if (questionItem.querySelector(SELECTORS.editorBox)) {
+        // 简答题：有编辑器或textarea
+        if (questionItem.querySelector(SELECTORS.editorBox) || 
+            questionItem.querySelector('textarea')) {
             return QUESTION_TYPES.JIANDA;
         }
 
+        // 判断题：有2个radio（真/假）
         const radioCount = questionItem.querySelectorAll(SELECTORS.radio).length;
         if (radioCount === 2) {
             return QUESTION_TYPES.PANDUAN;
         }
 
+        // 单选题：有radio（>2个）
         if (radioCount > 0) {
             return QUESTION_TYPES.DANXUAN;
         }
@@ -101,10 +114,40 @@ export default class CzbkExtractor {
             return stripHtml(vueData.questionContent).trim();
         }
 
-        // 方法2: 从 DOM 获取
+        // 方法2: 从 DOM 获取 - 标准答题页
         const contentEl = questionItem.querySelector(SELECTORS.questionContent);
         if (contentEl) {
             return normalizeWhitespace(stripHtml(contentEl.textContent));
+        }
+
+        // 方法3: 刷课习题页 - 尝试其他选择器
+        const alternativeSelectors = [
+            '.question-text',     // 刷课习题页可能用的选择器
+            '.question-title',
+            '.topic-content',
+            'p:first-of-type',    // 第一个p标签通常是题目
+            '.question-info-box > div:first-child'  // question-info-box的第一个div
+        ];
+
+        for (const selector of alternativeSelectors) {
+            const el = questionItem.querySelector(selector);
+            if (el && el.textContent.trim()) {
+                return normalizeWhitespace(stripHtml(el.textContent));
+            }
+        }
+
+        // 方法4: 直接使用questionItem的文本内容（作为最后手段）
+        // 但需要排除选项和按钮等内容
+        const text = questionItem.textContent;
+        if (text) {
+            // 移除明显的非题目内容
+            const cleanText = text
+                .replace(/\s+/g, ' ')
+                .replace(/[A-Z]\s*、.*$/g, '')  // 移除选项
+                .trim();
+            if (cleanText.length > 5) {  // 至少5个字符才认为是有效题目
+                return cleanText;
+            }
         }
 
         return '';
