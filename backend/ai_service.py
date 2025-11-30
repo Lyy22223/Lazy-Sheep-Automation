@@ -65,7 +65,8 @@ async def ai_answer_question(
     question_type: str,
     options: Optional[List[str]] = None,
     platform: str = "czbk",
-    model: Optional[str] = None
+    model: Optional[str] = None,
+    attempted_answers: Optional[List[str]] = None
 ) -> Dict:
     """
     使用AI回答题目
@@ -116,8 +117,8 @@ async def ai_answer_question(
     else:
         logger.info(f"使用模型: {use_model}")
     
-    # 构建提示词
-    prompt = build_prompt(question, question_type, options, platform)
+    # 构建提示词（传入已尝试答案用于优化）
+    prompt = build_prompt(question, question_type, options, platform, attempted_answers)
     
     try:
         logger.info(f"开始调用AI API: model={use_model}, base_url={client.base_url if hasattr(client, 'base_url') else 'N/A'}")
@@ -163,7 +164,7 @@ async def ai_answer_question(
         raise Exception(f"AI答题失败: {str(e)}")
 
 
-def build_prompt(question: str, question_type: str, options: Optional[List[str]], platform: str) -> str:
+def build_prompt(question: str, question_type: str, options: Optional[List[str]], platform: str, attempted_answers: Optional[List[str]] = None) -> str:
     """构建AI提示词"""
     type_map = {
         "0": "单选题",
@@ -182,6 +183,10 @@ def build_prompt(question: str, question_type: str, options: Optional[List[str]]
         for i, opt in enumerate(options):
             prompt += f"{chr(65 + i)}. {opt}\n"
         prompt += "\n"
+    
+    # 如果有已尝试的答案，简单提示AI避免这些答案
+    if attempted_answers and len(attempted_answers) > 0:
+        prompt += f"注意：以下答案已经尝试过但被判定为错误，请不要选择这些答案：{', '.join(attempted_answers)}\n\n"
     
     if question_type in ["0", "1"]:
         prompt += "请直接给出答案选项（如：A、B、AB等），不要添加任何前缀标记。答案后可以换行提供简要解析。"
@@ -266,14 +271,54 @@ def parse_ai_answer(answer_text: str, question_type: str, options: Optional[List
     
     # 查找答案部分
     if question_type in ["0", "1"]:  # 选择题
-        # 提取选项字母
-        match = re.search(r'[A-Z]+', cleaned_text)
-        if match:
-            answer = match.group()
-        else:
-            # 如果没有找到，取第一行作为答案
+        # 对于多选题（type=1），需要提取所有选项
+        if question_type == "1":  # 多选题
+            # 只提取答案行中的选项字母，忽略解析部分
+            # 支持多种分隔符：逗号、顿号、空格等
+            # 匹配模式：A、B、C、D 或 A,B,C,D 或 A B C D 或 ABCD
             lines = cleaned_text.split('\n')
-            answer = lines[0].strip()
+            
+            # 根据选项数量确定有效的选项字母范围
+            valid_letters = set()
+            if options:
+                for i in range(len(options)):
+                    valid_letters.add(chr(65 + i))  # A=65, B=66, ...
+            else:
+                # 如果没有选项信息，假设最多26个选项（A-Z）
+                valid_letters = set([chr(65 + i) for i in range(26)])
+            
+            # 优先从第一行提取（答案通常在开头）
+            answer_letters = []
+            if lines:
+                first_line = lines[0].strip()
+                # 从第一行提取所有大写字母，但只保留有效的选项字母
+                matches = re.findall(r'[A-Z]', first_line)
+                for letter in matches:
+                    if letter in valid_letters and letter not in answer_letters:
+                        answer_letters.append(letter)
+            
+            # 如果第一行没有找到有效字母，尝试前100个字符（答案通常在开头）
+            if not answer_letters:
+                preview_text = cleaned_text[:100]
+                matches = re.findall(r'[A-Z]', preview_text)
+                for letter in matches:
+                    if letter in valid_letters and letter not in answer_letters:
+                        answer_letters.append(letter)
+            
+            if answer_letters:
+                answer = ','.join(answer_letters)  # 使用逗号分隔
+            else:
+                # 最后回退：取第一行作为答案
+                answer = lines[0].strip() if lines else ""
+        else:  # 单选题
+            # 提取选项字母（只取第一个匹配的连续字母序列）
+            match = re.search(r'[A-Z]+', cleaned_text)
+            if match:
+                answer = match.group()
+            else:
+                # 如果没有找到，取第一行作为答案
+                lines = cleaned_text.split('\n')
+                answer = lines[0].strip()
     elif question_type == "2":  # 判断题
         if "正确" in cleaned_text or "对" in cleaned_text:
             answer = "正确"

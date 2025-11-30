@@ -10,7 +10,7 @@ import jieba
 from models import SearchRequest
 from database import AsyncSessionLocal, PublicQuestionTable, APIKeyQuestionTable
 from config import SIMILARITY_THRESHOLD
-from utils import clean_question_content
+from utils import clean_question_content, clean_answer_content
 
 
 async def search_answer(request: SearchRequest, api_key: str) -> Optional[Dict]:
@@ -32,9 +32,11 @@ async def search_answer(request: SearchRequest, api_key: str) -> Optional[Dict]:
             if result:
                 # 检查答案是否有效（不为None且不为空字符串）
                 if result.answer is not None and str(result.answer).strip():
+                    # 清理答案内容，去除特殊标记
+                    cleaned_answer = clean_answer_content(str(result.answer))
                     return {
                         "found": True,
-                        "answer": result.answer,
+                        "answer": cleaned_answer,
                         "solution": result.solution,
                         "questionId": result.question_id,
                         "confidence": 1.0,
@@ -49,9 +51,11 @@ async def search_answer(request: SearchRequest, api_key: str) -> Optional[Dict]:
             if result:
                 # 检查答案是否有效（不为None且不为空字符串）
                 if result.answer is not None and str(result.answer).strip():
+                    # 清理答案内容，去除特殊标记
+                    cleaned_answer = clean_answer_content(str(result.answer))
                     return {
                         "found": True,
-                        "answer": result.answer,
+                        "answer": cleaned_answer,
                         "solution": result.solution,
                         "questionId": result.question_id,
                         "confidence": 1.0,
@@ -141,9 +145,11 @@ async def search_by_similarity_in_key_library(
     if best_match and best_score >= SIMILARITY_THRESHOLD:
         # 检查答案是否有效（不为None且不为空字符串）
         if best_match.answer is not None and str(best_match.answer).strip():
+            # 清理答案内容，去除特殊标记
+            cleaned_answer = clean_answer_content(str(best_match.answer))
             return {
                 "found": True,
-                "answer": best_match.answer,
+                "answer": cleaned_answer,
                 "solution": best_match.solution,
                 "questionId": best_match.question_id,
                 "confidence": best_score,
@@ -183,9 +189,11 @@ async def search_by_similarity_in_public(
     if best_match and best_score >= SIMILARITY_THRESHOLD:
         # 检查答案是否有效（不为None且不为空字符串）
         if best_match.answer is not None and str(best_match.answer).strip():
+            # 清理答案内容，去除特殊标记
+            cleaned_answer = clean_answer_content(str(best_match.answer))
             return {
                 "found": True,
-                "answer": best_match.answer,
+                "answer": cleaned_answer,
                 "solution": best_match.solution,
                 "questionId": best_match.question_id,
                 "confidence": best_score,

@@ -270,12 +270,15 @@ async def ai_answer(
         
         # 步骤2: 题库中没有答案，使用AI生成答案
         logger.info(f"[AI答题] 步骤2: 开始调用AI服务生成答案...")
+        if request.attemptedAnswers:
+            logger.info(f"[AI答题] 已尝试的答案: {request.attemptedAnswers}")
         result = await ai_answer_question(
             question=cleaned_content,  # 使用清理后的内容
             question_type=request.type,
             options=request.options,
             platform=request.platform or "czbk",
-            model=request.model  # 传递模型参数
+            model=request.model,  # 传递模型参数
+            attempted_answers=request.attemptedAnswers  # 传递已尝试的答案
         )
         
         logger.info(f"[AI答题] ✅ AI答题成功: answer={result.get('answer')}, model={result.get('model')}, source={result.get('source')}")

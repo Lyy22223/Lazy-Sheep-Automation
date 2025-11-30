@@ -48,6 +48,7 @@ class AIAnswerRequest(BaseModel):
     options: Optional[List[str]] = None
     platform: Optional[str] = "czbk"
     model: Optional[str] = None  # 可选的模型参数，用于指定使用的AI模型
+    attemptedAnswers: Optional[List[str]] = None  # 已尝试的答案列表（用于优化AI提示词）
 
 
 # ==================== AI答题响应模型 ====================

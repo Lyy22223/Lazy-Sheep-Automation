@@ -4,12 +4,12 @@
 import json
 from typing import Dict, List, Optional
 from datetime import datetime
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
 from database import AsyncSessionLocal, PublicQuestionTable, APIKeyQuestionTable
-from utils import clean_question_content
+from utils import clean_question_content, clean_answer_content
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +33,7 @@ async def process_upload_data(data: Dict, api_key: str, only_correct: bool = Non
     """
     updated_count = 0
     new_count = 0
+    new_question_ids = []  # 新增题目的ID列表（用于前端判断正确答案）
     statistics = {
         "0": 0,  # 单选
         "1": 0,  # 多选
@@ -64,12 +65,16 @@ async def process_upload_data(data: Dict, api_key: str, only_correct: bool = Non
                     question_type = type_map.get(type_key, "0")
                     
                     for item in type_data["lists"]:
-                        # res.json 格式：只保存正确答案（correct: true）
+                        # res.json 格式：只更新正确答案（correct: true）
                         # 但判断题即使答错了也要处理（提取反向答案）
                         if should_filter_correct:
                             correct = item.get("correct")
-                            # 判断题（type == "2"）即使答错了也要处理（提取反向答案）
-                            if correct is not True and question_type != "2":
+                            question_id = item.get("id") or item.get("questionId")
+                            
+                            # 对于错误的答案，不删除也不更新，直接跳过（让前端继续尝试获取正确答案）
+                            if correct is False and question_type != "2":
+                                if question_id:
+                                    logger.info(f"[上传] 跳过错误答案: questionId={question_id}, type={question_type} (不更新，让前端继续尝试)")
                                 continue  # 跳过答错的题目（判断题除外）
                         
                         result_data = await save_question(
@@ -82,6 +87,10 @@ async def process_upload_data(data: Dict, api_key: str, only_correct: bool = Non
                         )
                         if result_data["is_new"]:
                             new_count += 1
+                            # 记录新增题目的ID（用于前端判断正确答案）
+                            question_id = item.get("id") or item.get("questionId")
+                            if question_id:
+                                new_question_ids.append(question_id)
                         else:
                             updated_count += 1
                         statistics[question_type] += 1
@@ -105,8 +114,12 @@ async def process_upload_data(data: Dict, api_key: str, only_correct: bool = Non
                         # 但判断题即使答错了也要处理（提取反向答案）
                         if only_correct:
                             correct = item.get("correct")
-                            # 判断题（type == "2"）即使答错了也要处理
-                            if correct is not True and question_type != "2":
+                            question_id = item.get("id") or item.get("questionId")
+                            
+                            # 对于错误的答案，不删除也不更新，直接跳过（让前端继续尝试获取正确答案）
+                            if correct is False and question_type != "2":
+                                if question_id:
+                                    logger.info(f"[上传] 跳过错误答案: questionId={question_id}, type={question_type} (不更新，让前端继续尝试)")
                                 continue  # 跳过答错的题目（判断题除外）
                         
                         result_data = await save_question(
@@ -118,6 +131,10 @@ async def process_upload_data(data: Dict, api_key: str, only_correct: bool = Non
                         )
                         if result_data["is_new"]:
                             new_count += 1
+                            # 记录新增题目的ID（用于前端判断正确答案）
+                            question_id = item.get("id") or item.get("questionId")
+                            if question_id:
+                                new_question_ids.append(question_id)
                         else:
                             updated_count += 1
                         statistics[question_type] += 1
@@ -139,12 +156,16 @@ async def process_upload_data(data: Dict, api_key: str, only_correct: bool = Non
                     question_type = type_map.get(type_key, "0")
                     
                     for item in type_data["lists"]:
-                        # res.json 格式：只保存正确答案（correct: true）
+                        # res.json 格式：只更新正确答案（correct: true）
                         # 但判断题即使答错了也要处理（提取反向答案）
                         if should_filter_correct:
                             correct = item.get("correct")
-                            # 判断题（type == "2"）即使答错了也要处理（提取反向答案）
-                            if correct is not True and question_type != "2":
+                            question_id = item.get("id") or item.get("questionId")
+                            
+                            # 对于错误的答案，不删除也不更新，直接跳过（让前端继续尝试获取正确答案）
+                            if correct is False and question_type != "2":
+                                if question_id:
+                                    logger.info(f"[上传] 跳过错误答案: questionId={question_id}, type={question_type} (不更新，让前端继续尝试)")
                                 continue  # 跳过答错的题目（判断题除外）
                         
                         result_data = await save_question(
@@ -157,6 +178,10 @@ async def process_upload_data(data: Dict, api_key: str, only_correct: bool = Non
                         )
                         if result_data["is_new"]:
                             new_count += 1
+                            # 记录新增题目的ID（用于前端判断正确答案）
+                            question_id = item.get("id") or item.get("questionId")
+                            if question_id:
+                                new_question_ids.append(question_id)
                         else:
                             updated_count += 1
                         statistics[question_type] += 1
@@ -169,8 +194,13 @@ async def process_upload_data(data: Dict, api_key: str, only_correct: bool = Non
                 if only_correct:
                     correct = record.get("correct")
                     question_type = record.get("type") or record.get("questionType", "0")
-                    # 判断题（type == "2"）即使答错了也要处理
-                    if correct is not True and question_type != "2":
+                    question_id = record.get("questionId") or record.get("id")
+                    
+                    # 对于错误的答案，不删除也不更新，直接跳过（让前端继续尝试获取正确答案）
+                    if correct is False and question_type != "2":
+                        if question_id:
+                            platform = record.get("platform", "czbk")
+                            logger.info(f"[上传] 跳过错误答案: questionId={question_id}, type={question_type} (不更新，让前端继续尝试)")
                         continue  # 跳过答错的题目（判断题除外）
                 
                 result = await save_answer_record(
@@ -180,6 +210,10 @@ async def process_upload_data(data: Dict, api_key: str, only_correct: bool = Non
                 )
                 if result["is_new"]:
                     new_count += 1
+                    # 记录新增题目的ID（用于前端判断正确答案）
+                    question_id = record.get("questionId") or record.get("id")
+                    if question_id:
+                        new_question_ids.append(question_id)
                 else:
                     updated_count += 1
                 
@@ -217,6 +251,7 @@ async def process_upload_data(data: Dict, api_key: str, only_correct: bool = Non
     return {
         "updated": updated_count,
         "new": new_count,
+        "new_question_ids": new_question_ids,  # 新增题目的ID列表（用于前端判断正确答案）
         "total": total,
         "statistics": statistics
     }
@@ -309,6 +344,10 @@ async def save_question(
             
             if isinstance(answer, list):
                 answer = ",".join(answer)
+            
+            # 清理答案内容，去除特殊标记（如【【csrf()】】）
+            if answer:
+                answer = clean_answer_content(str(answer))
     
     # 提取解析
     solution = item.get("solution") or item.get("analysis") or item.get("解析")
@@ -399,6 +438,10 @@ async def save_answer_record(
     if isinstance(answer, list):
         answer = ",".join(answer)
     
+    # 清理答案内容，去除特殊标记（如【【csrf()】】）
+    if answer:
+        answer = clean_answer_content(str(answer))
+    
     # 检查是否已存在
     existing = await session.execute(
         select(APIKeyQuestionTable).where(
@@ -424,6 +467,45 @@ async def save_answer_record(
         )
         session.add(new_record)
         return {"is_new": True}
+
+
+async def delete_wrong_answer(
+    session: AsyncSession,
+    question_id: str,
+    api_key: str,
+    platform: str = "czbk"
+) -> bool:
+    """
+    删除数据库中指定题目的错误答案记录
+    
+    Args:
+        session: 数据库会话
+        question_id: 题目ID
+        api_key: API Key
+        platform: 平台名称
+    
+    Returns:
+        是否成功删除
+    """
+    try:
+        # 从API Key贡献库中删除
+        stmt = delete(APIKeyQuestionTable).where(
+            APIKeyQuestionTable.api_key == api_key,
+            APIKeyQuestionTable.question_id == question_id,
+            APIKeyQuestionTable.platform == platform
+        )
+        result = await session.execute(stmt)
+        deleted_count = result.rowcount
+        
+        if deleted_count > 0:
+            logger.info(f"[删除错误答案] 已删除题目 {question_id} 的错误答案记录 (API Key库)")
+            return True
+        else:
+            logger.debug(f"[删除错误答案] 题目 {question_id} 在API Key库中不存在，无需删除")
+            return False
+    except Exception as e:
+        logger.error(f"[删除错误答案] 删除题目 {question_id} 失败: {str(e)}", exc_info=True)
+        return False
 
 
 async def get_total_question_count(api_key: str) -> int:
