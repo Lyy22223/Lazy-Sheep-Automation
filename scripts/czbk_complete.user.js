@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         懒羊羊自动化平台 - 传智播客答题脚本|刷课脚本|AI答题|Vue3+ElementPlus
 // @namespace    http://tampermonkey.net/
-// @version      4.0.3-optimized
+// @version      4.0.6-optimized
 // @description  懒羊羊自动化平台出品 - 传智播客专用智能答题脚本，支持率最高！支持传智播客刷课答题、智能答题、AI自动答题。功能强大：本地答案库、云端API查询、智能纠错、批量答题、自动刷课。使用Vue3+ElementPlus现代化UI，操作简单，答题准确率最高！【深度性能优化版】
 // @author       懒羊羊自动化平台
 // @match        https://stu.ityxb.com/*
@@ -22,7 +22,7 @@
     'use strict';
 
     /**
-     * ==================== 性能优化说明 (v4.0.3-optimized) ====================
+     * ==================== 性能优化说明 (v4.0.6-optimized) ====================
      * 
      * 第一轮优化 (v4.0.1):
      * 1. 缓存机制优化：Map替代WeakMap、LRU清理策略
@@ -37,6 +37,21 @@
      * 
      * BugFix (v4.0.3):
      * 8. 修复简答题填充：支持KindEditor API、文本转HTML、多种编辑器兼容
+     * 
+     * Feature (v4.0.4):
+     * 9. 智能纠错默认开启：提升答题正确率
+     * 10. 优化纠错日志：清晰显示纠错状态和结果统计
+     * 11. 增强用户提示：智能纠错状态可视化
+     * 
+     * BugFix (v4.0.5):
+     * 12. 修复多选题填充闪烁问题：避免重复点击导致反选
+     * 13. 优化选项填充流程：先清空再选中
+     * 14. 增强事件触发机制：支持group级别事件
+     * 
+     * BugFix (v4.0.6):
+     * 15. 优化多选题答案转换：支持数组/字符串/连续字母等多种格式
+     * 16. 增强事件触发：原生Event + Vue emit双重保障
+     * 17. 添加调试日志：多选题答案转换过程可视化
      * 
      * 综合性能提升：DOM查询↑40%、内存↓35%、答题速度↑25%、稳定性↑30%
      */
@@ -95,7 +110,7 @@
             showControlPanel: true,   // 显示控制面板（从缓存加载）
             useVueUI: true,          // 使用Vue3 + Antdv UI
             autoCorrectAnswer: false,   // 自动纠错：已移至后端处理，前端不再进行纠错
-            autoCorrect: false        // 智能纠错（默认关闭，从缓存加载）
+            autoCorrect: true         // 智能纠错（默认开启，从缓存加载）
         },
 
         // 答题配置
@@ -614,7 +629,7 @@
         },
 
         // 选中 Radio/Checkbox (支持 Element Plus) - 优化版
-        selectOption(input, label) {
+        selectOption(input, label, skipClick = false) {
             if (!input && !label) return false;
 
             // 1. 处理 Element Plus 样式
@@ -632,8 +647,12 @@
                 ['change', 'input'].forEach(type => this.triggerEvent(input, type));
             }
 
-            // 3. 点击交互 (最可靠)
-            return this.click(label || input);
+            // 3. 点击交互 (可选，避免多选题反选)
+            // 多选题需要skipClick=true，单选题可以点击
+            if (!skipClick) {
+                return this.click(label || input);
+            }
+            return true;
         }
     };
 
@@ -1020,6 +1039,22 @@
             const checkboxes = questionItem.querySelectorAll('input[type="checkbox"]');
             let successCount = 0;
 
+            // 步骤1: 先取消所有选项（避免旧答案干扰）
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    checkbox.checked = false;
+                    checkbox.removeAttribute('checked');
+                    const label = checkbox.closest('label.el-checkbox');
+                    if (label) {
+                        label.classList.remove('is-checked');
+                        const inner = label.querySelector('.el-checkbox__inner');
+                        inner?.classList.remove('is-checked');
+                    }
+                }
+            });
+
+            // 步骤2: 选中正确答案
+            const selectedInputs = [];
             for (const val of vals) {
                 const isLetter = REGEX_PATTERNS.SINGLE_LETTER.test(val);
                 const index = isLetter ? val.charCodeAt(0) - 65 : -1;
@@ -1033,10 +1068,49 @@
                 }
 
                 if (input) {
-                    if (!input.checked) {
-                        DomUtils.selectOption(input, input.closest('label.el-checkbox') || input.parentElement);
+                    const label = input.closest('label.el-checkbox') || input.parentElement;
+                    
+                    // 设置选中状态
+                    input.checked = true;
+                    input.setAttribute('checked', 'checked');
+                    
+                    // Element Plus 样式
+                    if (label) {
+                        label.classList.add('is-checked');
+                        const inner = label.querySelector('.el-checkbox__inner');
+                        inner?.classList.add('is-checked');
                     }
+                    
+                    selectedInputs.push(input);
                     successCount++;
+                }
+            }
+
+            // 步骤3: 批量触发事件（所有选中项）
+            selectedInputs.forEach(input => {
+                // 创建并触发原生事件（更可靠）
+                const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                const inputEvent = new InputEvent('input', { bubbles: true, cancelable: true });
+                input.dispatchEvent(changeEvent);
+                input.dispatchEvent(inputEvent);
+            });
+
+            // 步骤4: 触发group级别的事件
+            if (group) {
+                const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                const inputEvent = new InputEvent('input', { bubbles: true, cancelable: true });
+                group.dispatchEvent(changeEvent);
+                group.dispatchEvent(inputEvent);
+                
+                // 额外触发Vue的更新（如果group有__vue__）
+                try {
+                    const vnode = group.__vnode__ || group.__vue__;
+                    if (vnode && vnode.ctx) {
+                        vnode.ctx.emit('update:modelValue', vals);
+                        vnode.ctx.emit('change', vals);
+                    }
+                } catch (e) {
+                    // 忽略Vue相关错误
                 }
             }
 
@@ -2362,7 +2436,7 @@
                         const skipAnswered = ref(GM_getValue('czbk_skip_answered', config.features.skipAnswered));
                         const useAI = ref(GM_getValue('czbk_use_ai', config.features.useAI));
                         const showControlPanel = ref(GM_getValue('czbk_show_control_panel', config.features.showControlPanel));
-                        const autoCorrect = ref(GM_getValue('czbk_auto_correct', false)); // 智能纠错，默认关闭
+                        const autoCorrect = ref(GM_getValue('czbk_auto_correct', true)); // 智能纠错，默认开启
 
                         // 同步到config和全局变量
                         config.features.autoAnswer = autoAnswer.value;
@@ -6738,14 +6812,18 @@
 
                 // 如果有错误答案，进行批量纠错（只检查智能纠错开关）
                 if (hasWrongAnswers) {
-                    // 检查智能纠错开关（必须明确为true才开启）
+                    // 检查智能纠错开关
                     const autoCorrectEnabled = config.features.autoCorrect === true;
+                    utils.log(`   🔧 智能纠错状态: ${autoCorrectEnabled ? '✅ 已开启' : '❌ 已关闭'}`);
+                    
                     if (!autoCorrectEnabled) {
-                        utils.log(`   ⏭️ 智能纠错已关闭（当前状态: ${config.features.autoCorrect}），跳过纠错流程`);
+                        utils.log(`   ⏭️ 智能纠错已关闭，跳过纠错流程（可在控制面板中开启）`);
+                        utils.log(`   💡 提示: 开启智能纠错可自动修正错误答案`);
                         return;
                     }
 
-                    utils.log(`   🔍 检测到 ${wrongQuestions.length} 道错误答案，开始批量纠错...`);
+                    utils.log(`   🚀 检测到 ${wrongQuestions.length} 道错误答案，智能纠错已启动！`);
+                    utils.log(`   📋 错误题目清单: ${wrongQuestions.map(q => q.questionId.substring(0, 8)).join(', ')}...`);
 
                     // 步骤1：自动上传批改结果到后端（后端尝试纠错）
                     const uploadResult = await this.uploadFullDataToBackend(data, '自动纠错');
@@ -6838,13 +6916,20 @@
 
                 // 统计结果
                 const successCount = corrections.filter(r => r && r.success).length;
-                utils.log(`   ✅ 批量纠错完成: ${successCount}/${wrongQuestions.length} 道题纠错成功`);
+                const failedCount = wrongQuestions.length - successCount;
+                
+                utils.log(`   ${'='.repeat(50)}`);
+                utils.log(`   📊 批量纠错完成统计:`);
+                utils.log(`   ✅ 纠错成功: ${successCount} 道`);
+                utils.log(`   ❌ 纠错失败: ${failedCount} 道`);
+                utils.log(`   📈 成功率: ${wrongQuestions.length > 0 ? Math.round((successCount / wrongQuestions.length) * 100) : 0}%`);
+                utils.log(`   ${'='.repeat(50)}`);
 
                 // 返回纠错结果，供后续检查使用
                 return {
                     total: wrongQuestions.length,
                     success: successCount,
-                    failed: wrongQuestions.length - successCount,
+                    failed: failedCount,
                     corrections: corrections
                 };
 
@@ -7481,11 +7566,32 @@
                     return answer.toString();
 
                 case '1': // 多选题
-                    // 如果答案是字母格式，转换为索引
-                    if (typeof answer === 'string' && answer.includes(',')) {
-                        return this.answerConverter.lettersToIndexes(answer);
+                    // 如果答案是字母格式（单个或多个），转换为索引
+                    let convertedAnswer;
+                    if (Array.isArray(answer)) {
+                        // 数组格式 ['A', 'B'] → '0,1'
+                        const letters = answer.map(a => String(a).trim()).join(',');
+                        convertedAnswer = this.answerConverter.lettersToIndexes(letters);
+                    } else if (typeof answer === 'string') {
+                        // 字符串格式 'A,B' 或 'AB' 或 'A'
+                        // 如果包含逗号，直接转换
+                        if (answer.includes(',')) {
+                            convertedAnswer = this.answerConverter.lettersToIndexes(answer);
+                        }
+                        // 如果是纯字母字符串（如 'AB' 或 'ABC'），拆分后转换
+                        else if (/^[A-Z]+$/.test(answer)) {
+                            const letters = answer.split('').join(',');
+                            convertedAnswer = this.answerConverter.lettersToIndexes(letters);
+                        } else {
+                            convertedAnswer = answer.toString();
+                        }
+                    } else {
+                        convertedAnswer = answer.toString();
                     }
-                    return answer.toString();
+                    if (config.debug) {
+                        utils.log(`   🔄 多选题答案转换: ${JSON.stringify(answer)} → ${convertedAnswer}`);
+                    }
+                    return convertedAnswer;
 
                 case '2': // 判断题
                     // 确保是中文格式
