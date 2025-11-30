@@ -7,6 +7,8 @@ pydantic-settings==2.1.0
 # 数据库
 sqlalchemy==2.0.25
 aiosqlite==0.19.0
+asyncpg==0.29.0  # PostgreSQL异步驱动
+psycopg2-binary==2.9.9  # PostgreSQL同步驱动（工具用）
 
 # Redis 缓存
 redis==5.0.1
