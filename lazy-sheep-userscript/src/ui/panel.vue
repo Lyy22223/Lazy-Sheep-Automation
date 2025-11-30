@@ -171,6 +171,96 @@
         </a-space>
       </a-tab-pane>
 
+      <!-- 刷课标签页 -->
+      <a-tab-pane key="course" tab="刷课">
+        <a-space direction="vertical" :size="16" style="width: 100%">
+          <!-- 状态卡片 -->
+          <a-card title="刷课状态" size="small">
+            <a-row :gutter="16">
+              <a-col :span="8">
+                <a-statistic 
+                  title="视频完成" 
+                  :value="courseStats.videosCompleted"
+                  :value-style="{ color: '#3f8600' }"
+                />
+              </a-col>
+              <a-col :span="8">
+                <a-statistic 
+                  title="习题完成" 
+                  :value="courseStats.exercisesCompleted"
+                  :value-style="{ color: '#1890ff' }"
+                />
+              </a-col>
+              <a-col :span="8">
+                <a-statistic 
+                  title="运行状态" 
+                  :value="isCourseRunning ? '运行中' : '已停止'"
+                  :value-style="{ color: isCourseRunning ? '#52c41a' : '#999' }"
+                />
+              </a-col>
+            </a-row>
+          </a-card>
+
+          <!-- 刷课设置 -->
+          <a-card title="刷课设置" size="small">
+            <a-space direction="vertical" :size="12" style="width: 100%">
+              <div>
+                <div style="margin-bottom: 8px;">
+                  <span>播放速度: {{ courseSettings.playbackSpeed }}x</span>
+                </div>
+                <a-slider 
+                  v-model:value="courseSettings.playbackSpeed" 
+                  :min="1" 
+                  :max="3" 
+                  :step="0.5"
+                  :marks="{ 1: '1x', 1.5: '1.5x', 2: '2x', 2.5: '2.5x', 3: '3x' }"
+                />
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>一键完成（快进到结尾）</span>
+                <a-switch v-model:checked="courseSettings.instantFinish" />
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>自动跳转下一节</span>
+                <a-switch v-model:checked="courseSettings.autoNext" />
+              </div>
+            </a-space>
+          </a-card>
+
+          <!-- 操作按钮 -->
+          <a-space style="width: 100%">
+            <a-button 
+              type="primary" 
+              :loading="isCourseRunning"
+              @click="handleStartCourse"
+              style="flex: 1"
+            >
+              <PlayCircleOutlined v-if="!isCourseRunning" />
+              {{ isCourseRunning ? '刷课中...' : '开始刷课' }}
+            </a-button>
+
+            <a-button 
+              danger
+              :disabled="!isCourseRunning"
+              @click="handleStopCourse"
+              style="flex: 1"
+            >
+              <StopOutlined />
+              停止刷课
+            </a-button>
+          </a-space>
+
+          <a-alert
+            message="使用说明"
+            description="1. 设置播放速度和选项后，点击'开始刷课'。2. 系统会自动播放视频、处理习题并跳转下一节。3. 一键完成模式会直接快进到视频结尾。"
+            type="info"
+            show-icon
+          />
+        </a-space>
+      </a-tab-pane>
+
       <!-- 设置标签页 -->
       <a-tab-pane key="settings" tab="设置">
         <a-space direction="vertical" :size="16" style="width: 100%">
@@ -334,13 +424,15 @@ import {
   BulbOutlined,
   CopyOutlined,
   DownloadOutlined,
-  FilterOutlined
+  FilterOutlined,
+  StopOutlined
 } from '@ant-design/icons-vue';
 import { message, Modal } from 'ant-design-vue';
 import ResultDisplay from './result-display.vue';
 import AutoAnswer from '../modules/auto-answer.js';
 import SubmitHandler from '../modules/submit-handler.js';
 import CorrectionManager from '../modules/correction.js';
+import CourseAuto from '../modules/course-auto.js';
 import NetworkInterceptor from '../network/interceptor.js';
 import Config from '../core/config.js';
 import RequestQueue from '../network/request-queue.js';
@@ -391,6 +483,21 @@ const settings = ref({
   concurrency: 3,
   delay: 500
 });
+
+// 刷课相关状态
+const isCourseRunning = ref(false);
+const courseSettings = ref({
+  playbackSpeed: Config.get('course.playbackSpeed', 2.0),
+  instantFinish: Config.get('course.instantFinish', false),
+  autoNext: Config.get('course.autoNext', true)
+});
+const courseStats = ref({
+  videosCompleted: 0,
+  exercisesCompleted: 0
+});
+
+// 创建刷课管理器实例
+let courseAutoInstance = null;
 
 // 计算属性
 const successRate = computed(() => {
@@ -634,6 +741,79 @@ const saveSettings = () => {
 const updateProgress = () => {
   const currentProgress = AutoAnswer.getProgress();
   progress.value = currentProgress;
+};
+
+// 刷课相关方法
+const handleStartCourse = async () => {
+  if (isCourseRunning.value) {
+    message.warning('刷课已在运行中');
+    return;
+  }
+
+  try {
+    // 创建刷课管理器实例
+    if (!courseAutoInstance) {
+      courseAutoInstance = new CourseAuto();
+    }
+
+    // 更新配置
+    courseAutoInstance.updateConfig({
+      playbackSpeed: courseSettings.value.playbackSpeed,
+      instantFinish: courseSettings.value.instantFinish,
+      autoNext: courseSettings.value.autoNext
+    });
+
+    isCourseRunning.value = true;
+    message.success('开始刷课...');
+    logger.info('[UI] 开始刷课');
+
+    // 启动刷课（异步执行）
+    courseAutoInstance.start().then(() => {
+      isCourseRunning.value = false;
+      const stats = courseAutoInstance.getStats();
+      courseStats.value = {
+        videosCompleted: stats.videosCompleted,
+        exercisesCompleted: stats.exercisesCompleted
+      };
+      message.success('刷课已完成！');
+    }).catch((error) => {
+      isCourseRunning.value = false;
+      message.error('刷课失败: ' + error.message);
+      logger.error('[UI] 刷课失败:', error);
+    });
+
+    // 定期更新统计信息
+    const updateStatsInterval = setInterval(() => {
+      if (!isCourseRunning.value) {
+        clearInterval(updateStatsInterval);
+        return;
+      }
+      const stats = courseAutoInstance.getStats();
+      courseStats.value = {
+        videosCompleted: stats.videosCompleted,
+        exercisesCompleted: stats.exercisesCompleted
+      };
+    }, 1000);
+
+  } catch (error) {
+    isCourseRunning.value = false;
+    message.error('启动刷课失败: ' + error.message);
+    logger.error('[UI] 启动刷课失败:', error);
+  }
+};
+
+const handleStopCourse = () => {
+  if (!isCourseRunning.value) {
+    message.warning('刷课未在运行中');
+    return;
+  }
+
+  if (courseAutoInstance) {
+    courseAutoInstance.stop();
+    isCourseRunning.value = false;
+    message.info('已停止刷课');
+    logger.info('[UI] 已停止刷课');
+  }
 };
 
 // 监听网络拦截器事件

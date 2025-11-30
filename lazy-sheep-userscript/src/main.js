@@ -11,6 +11,8 @@ import CZBKAdapter from './platforms/czbk/adapter.js';
 import NetworkInterceptor from './network/interceptor.js';
 import UIManager from './ui/index.js';
 import AntiCheatBypass from './core/anti-cheat-bypass.js';
+import CourseAuto from './modules/course-auto.js';
+import VideoHandler from './modules/video-handler.js';
 
 class AutoAnswerSystem {
     constructor() {
@@ -161,8 +163,13 @@ const system = new AutoAnswerSystem();
 // 导出到全局 (方便调试)
 if (typeof unsafeWindow !== 'undefined') {
     unsafeWindow.AutoAnswerSystem = system;
+    unsafeWindow.CourseAuto = CourseAuto;
+    unsafeWindow.VideoHandler = VideoHandler;
 } else {
     window.AutoAnswerSystem = system;
+    window.CourseAuto = CourseAuto;
+    window.VideoHandler = VideoHandler;
 }
 
 export default system;
+export { CourseAuto, VideoHandler };
