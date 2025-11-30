@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         懒羊羊自动化平台 - 传智播客答题脚本|刷课脚本|AI答题|Vue3+ElementPlus
 // @namespace    http://tampermonkey.net/
-// @version      4.0.6-optimized
+// @version      4.0.7-optimized
 // @description  懒羊羊自动化平台出品 - 传智播客专用智能答题脚本，支持率最高！支持传智播客刷课答题、智能答题、AI自动答题。功能强大：本地答案库、云端API查询、智能纠错、批量答题、自动刷课。使用Vue3+ElementPlus现代化UI，操作简单，答题准确率最高！【深度性能优化版】
 // @author       懒羊羊自动化平台
 // @match        https://stu.ityxb.com/*
@@ -22,7 +22,7 @@
     'use strict';
 
     /**
-     * ==================== 性能优化说明 (v4.0.6-optimized) ====================
+     * ==================== 性能优化说明 (v4.0.7-optimized) ====================
      * 
      * 第一轮优化 (v4.0.1):
      * 1. 缓存机制优化：Map替代WeakMap、LRU清理策略
@@ -52,6 +52,11 @@
      * 15. 优化多选题答案转换：支持数组/字符串/连续字母等多种格式
      * 16. 增强事件触发：原生Event + Vue emit双重保障
      * 17. 添加调试日志：多选题答案转换过程可视化
+     * 
+     * BugFix (v4.0.7):
+     * 18. 修复多选题平台监听器触发：Vue数据使用索引数组
+     * 19. 增强事件触发链：input/change/click + questionItem级别
+     * 20. 双重数据同步：填充前后两次更新Vue + $forceUpdate
      * 
      * 综合性能提升：DOM查询↑40%、内存↓35%、答题速度↑25%、稳定性↑30%
      */
@@ -1028,12 +1033,20 @@
                 map(v => String(v).trim().toUpperCase()).filter(Boolean);
             if (!vals.length) return false;
 
-            // 1. Vue数据更新
+            // 转换为索引数组（平台需要索引，不是字母）
+            const indexes = vals.map(v => {
+                const isLetter = REGEX_PATTERNS.SINGLE_LETTER.test(v);
+                return isLetter ? (v.charCodeAt(0) - 65) : parseInt(v);
+            });
+
+            // 1. Vue数据更新（使用索引数组）
             const group = questionItem.querySelector('.el-checkbox-group');
             if (group) {
-                ['modelValue', 'value', 'checkedValues'].some(key => VueUtils.updateData(group, key, vals));
+                // 尝试多个可能的属性名
+                ['modelValue', 'value', 'checkedValues', 'selected'].some(key => VueUtils.updateData(group, key, indexes));
             }
-            VueUtils.updateData(questionItem, 'stuAnswer', vals.join(''));
+            // stuAnswer可能需要字符串格式的索引
+            VueUtils.updateData(questionItem, 'stuAnswer', indexes.join(','));
 
             // 2. DOM操作 - 优化：批量处理
             const checkboxes = questionItem.querySelectorAll('input[type="checkbox"]');
@@ -1088,33 +1101,64 @@
 
             // 步骤3: 批量触发事件（所有选中项）
             selectedInputs.forEach(input => {
-                // 创建并触发原生事件（更可靠）
+                // 创建并触发原生事件
                 const changeEvent = new Event('change', { bubbles: true, cancelable: true });
                 const inputEvent = new InputEvent('input', { bubbles: true, cancelable: true });
-                input.dispatchEvent(changeEvent);
+                const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
+                
                 input.dispatchEvent(inputEvent);
+                input.dispatchEvent(changeEvent);
+                input.dispatchEvent(clickEvent);
             });
 
             // 步骤4: 触发group级别的事件
             if (group) {
                 const changeEvent = new Event('change', { bubbles: true, cancelable: true });
                 const inputEvent = new InputEvent('input', { bubbles: true, cancelable: true });
-                group.dispatchEvent(changeEvent);
                 group.dispatchEvent(inputEvent);
+                group.dispatchEvent(changeEvent);
                 
                 // 额外触发Vue的更新（如果group有__vue__）
                 try {
                     const vnode = group.__vnode__ || group.__vue__;
                     if (vnode && vnode.ctx) {
-                        vnode.ctx.emit('update:modelValue', vals);
-                        vnode.ctx.emit('change', vals);
+                        // 使用索引数组，不是字母
+                        vnode.ctx.emit('update:modelValue', indexes);
+                        vnode.ctx.emit('change', indexes);
+                        vnode.ctx.emit('input', indexes);
                     }
                 } catch (e) {
                     // 忽略Vue相关错误
                 }
             }
 
-            await utils.sleep(300);
+            // 步骤5: 最关键 - 触发questionItem级别的事件（平台可能在这里监听）
+            try {
+                const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                const inputEvent = new InputEvent('input', { bubbles: true, cancelable: true });
+                questionItem.dispatchEvent(inputEvent);
+                questionItem.dispatchEvent(changeEvent);
+            } catch (e) {
+                // 忽略错误
+            }
+
+            // 步骤6: 再次确认Vue数据同步（确保平台能检测到变化）
+            if (group) {
+                // 再次更新Vue数据
+                ['modelValue', 'value', 'checkedValues', 'selected'].some(key => VueUtils.updateData(group, key, indexes));
+                
+                // 触发Vue的$forceUpdate
+                try {
+                    const vm = VueUtils.getInstance(group);
+                    if (vm && vm.$forceUpdate) {
+                        vm.$forceUpdate();
+                    }
+                } catch (e) {
+                    // 忽略错误
+                }
+            }
+
+            await utils.sleep(500); // 增加延迟确保事件处理完成
             return successCount > 0;
         },
 
