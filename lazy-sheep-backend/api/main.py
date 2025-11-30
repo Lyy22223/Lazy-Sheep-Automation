@@ -1,4 +1,4 @@
-"""
+﻿"""
 懒羊羊题库API - 主入口
 """
 from fastapi import FastAPI, Request, HTTPException
@@ -8,9 +8,9 @@ from contextlib import asynccontextmanager
 from loguru import logger
 import sys
 
-from app.config import get_settings
-from app.database import init_db
-from app.routes import search, ai, upload
+from api.config import get_settings
+from api.database import init_db
+from api.routes import search, ai, upload
 
 settings = get_settings()
 

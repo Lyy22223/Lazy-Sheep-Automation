@@ -1,9 +1,9 @@
-"""
+﻿"""
 API Key数据模型
 """
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.sql import func
-from app.database import Base
+from api.database import Base
 
 
 class APIKey(Base):

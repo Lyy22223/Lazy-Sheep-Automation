@@ -1,4 +1,4 @@
-"""
+﻿"""
 配置管理
 """
 from pydantic_settings import BaseSettings

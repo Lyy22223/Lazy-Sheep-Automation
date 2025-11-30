@@ -1,8 +1,8 @@
-"""
+﻿"""
 AI答题服务
 """
 from openai import AsyncOpenAI
-from app.config import get_settings
+from api.config import get_settings
 from loguru import logger
 
 settings = get_settings()

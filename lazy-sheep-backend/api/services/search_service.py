@@ -1,11 +1,11 @@
-"""
+﻿"""
 搜索服务
 """
 import hashlib
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import Question
-from app.utils.text_matcher import fuzzy_match
+from api.models import Question
+from api.utils.text_matcher import fuzzy_match
 from loguru import logger
 
 

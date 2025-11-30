@@ -1,12 +1,12 @@
-"""
+﻿"""
 AI答题API路由
 """
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_db
-from app.services.ai_service import AIService
-from app.services.search_service import SearchService
+from api.database import get_db
+from api.services.ai_service import AIService
+from api.services.search_service import SearchService
 from loguru import logger
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])

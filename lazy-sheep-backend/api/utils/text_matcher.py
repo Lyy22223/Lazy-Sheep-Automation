@@ -1,4 +1,4 @@
-"""
+﻿"""
 文本匹配工具
 """
 from difflib import SequenceMatcher
