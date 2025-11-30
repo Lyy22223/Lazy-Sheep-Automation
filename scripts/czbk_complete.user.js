@@ -1098,14 +1098,6 @@
                         // 直接点击label（简化方法，参考测试代码）
                         utils.log(`📝 直接点击label元素进行选择...`);
                         
-                        // 先设置状态
-                        radio.checked = true;
-                        label.classList.add('is-checked');
-                        const radioInner = label.querySelector('.el-radio__inner');
-                        if (radioInner) {
-                            radioInner.classList.add('is-checked');
-                        }
-                        
                         // 点击label（测试代码证明简单点击即可）
                         label.click();
                         await utils.sleep(300);
@@ -1129,9 +1121,9 @@
                 // 更新Element Plus的样式
                 if (label) {
                     label.classList.add('is-checked');
-                    const radioInner = label.querySelector('.el-radio__inner');
-                    if (radioInner) {
-                        radioInner.classList.add('is-checked');
+                    const innerEl = label.querySelector('.el-radio__inner');
+                    if (innerEl) {
+                        innerEl.classList.add('is-checked');
                     }
                 }
                 
@@ -1146,34 +1138,14 @@
                 // 等待一段时间，确保DOM更新
                 await utils.sleep(config.answer.delay);
             
-                // 验证是否选中（多次验证，确保可靠性）
+                // 验证是否选中
                 let isSelected = radio.checked || (label && label.classList.contains('is-checked'));
-                
-                // 如果第一次验证失败，尝试再次设置和验证
-                if (!isSelected) {
-                    utils.log(`⚠️ 第一次验证失败，尝试强制设置...`);
-                    radio.checked = true;
-                    radio.setAttribute('checked', 'checked');
-                    if (label) {
-                        label.classList.add('is-checked');
-                        const radioInner = label.querySelector('.el-radio__inner');
-                        if (radioInner) {
-                            radioInner.classList.add('is-checked');
-                        }
-                        // 再次点击
-                        try {
-                            label.click();
-                        } catch (e) {}
-                    }
-                    await utils.sleep(100);
-                    isSelected = radio.checked || (label && label.classList.contains('is-checked'));
-                }
                 
                 if (isSelected) {
                     utils.log(`✅ 单选题已选择: value=${targetValue} (${answer})`);
                     return true;
                 } else {
-                    utils.log(`⚠️ 单选题选择验证失败: value=${targetValue}, radio.checked=${radio.checked}, label.is-checked=${label && label.classList.contains('is-checked')}`);
+                    utils.log(`⚠️ 单选题选择验证失败: value=${targetValue}`);
                 }
             }
             
@@ -1247,9 +1219,9 @@
                             radioInput.setAttribute('checked', 'checked');
                         }
                         label.classList.add('is-checked');
-                        const radioInner = label.querySelector('.el-radio__inner');
-                        if (radioInner) {
-                            radioInner.classList.add('is-checked');
+                        const innerEl1 = label.querySelector('.el-radio__inner');
+                        if (innerEl1) {
+                            innerEl1.classList.add('is-checked');
                         }
                         
                         // 直接点击label（最可靠的方式）
@@ -1286,9 +1258,9 @@
                     // 更新Element Plus的样式
                     if (label) {
                         label.classList.add('is-checked');
-                        const radioInner = label.querySelector('.el-radio__inner');
-                        if (radioInner) {
-                            radioInner.classList.add('is-checked');
+                        const innerEl2 = label.querySelector('.el-radio__inner');
+                        if (innerEl2) {
+                            innerEl2.classList.add('is-checked');
                         }
                     }
                     
@@ -1910,9 +1882,9 @@
                     // 先设置状态
                     radioInput.checked = true;
                     label.classList.add('is-checked');
-                    const radioInner = label.querySelector('.el-radio__inner');
-                    if (radioInner) {
-                        radioInner.classList.add('is-checked');
+                    const innerEl3 = label.querySelector('.el-radio__inner');
+                    if (innerEl3) {
+                        innerEl3.classList.add('is-checked');
                     }
                     
                     // 点击label（测试代码证明简单点击即可）
