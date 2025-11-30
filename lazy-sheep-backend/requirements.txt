@@ -1,0 +1,30 @@
+# FastAPI 核心
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# 数据库
+sqlalchemy==2.0.25
+aiosqlite==0.19.0
+
+# Redis 缓存
+redis==5.0.1
+hiredis==2.3.2
+
+# HTTP 客户端
+httpx==0.26.0
+
+# 工具
+python-dotenv==1.0.0
+python-multipart==0.0.6
+
+# AI SDK
+openai==1.10.0
+
+# 安全
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# 日志
+loguru==0.7.2
