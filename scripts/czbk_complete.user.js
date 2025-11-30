@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         懒羊羊自动化平台 - 传智播客答题脚本|刷课脚本|AI答题|Vue3+ElementPlus
 // @namespace    http://tampermonkey.net/
-// @version      4.0.7-optimized
+// @version      4.0.8-optimized
 // @description  懒羊羊自动化平台出品 - 传智播客专用智能答题脚本，支持率最高！支持传智播客刷课答题、智能答题、AI自动答题。功能强大：本地答案库、云端API查询、智能纠错、批量答题、自动刷课。使用Vue3+ElementPlus现代化UI，操作简单，答题准确率最高！【深度性能优化版】
 // @author       懒羊羊自动化平台
 // @match        https://stu.ityxb.com/*
@@ -22,11 +22,11 @@
     'use strict';
 
     /**
-     * ==================== 性能优化说明 (v4.0.7-optimized) ====================
+     * ==================== 性能优化说明 (v4.0.8-optimized) ====================
      * 
      * 第一轮优化 (v4.0.1):
      * 1. 缓存机制优化：Map替代WeakMap、LRU清理策略
-     * 2. DOM操作优化：合并选择器、批量操作
+     * 2. DOM操作优化：合并选择器、批量处理
      * 3. 事件处理优化：重用Event对象、防抖
      * 
      * 第二轮深度优化 (v4.0.2):
@@ -57,6 +57,11 @@
      * 18. 修复多选题平台监听器触发：Vue数据使用索引数组
      * 19. 增强事件触发链：input/change/click + questionItem级别
      * 20. 双重数据同步：填充前后两次更新Vue + $forceUpdate
+     * 
+     * BugFix (v4.0.8):
+     * 21. 修复stuAnswer格式错误：改为连续字符串（'012'而非'0,1,2'）
+     * 22. 适配平台initDuoxuanModel：stuAnswer.split()要求字符串格式
+     * 23. 完善双重同步机制：确保前后一致使用indexes.join('')
      * 
      * 综合性能提升：DOM查询↑40%、内存↓35%、答题速度↑25%、稳定性↑30%
      */
@@ -1045,8 +1050,9 @@
                 // 尝试多个可能的属性名
                 ['modelValue', 'value', 'checkedValues', 'selected'].some(key => VueUtils.updateData(group, key, indexes));
             }
-            // stuAnswer可能需要字符串格式的索引
-            VueUtils.updateData(questionItem, 'stuAnswer', indexes.join(','));
+            // stuAnswer必须是字符串格式（连续索引，无分隔符，如 '012'）
+            // 平台的 initDuoxuanModel 会调用 stuAnswer.split()
+            VueUtils.updateData(questionItem, 'stuAnswer', indexes.join(''));
 
             // 2. DOM操作 - 优化：批量处理
             const checkboxes = questionItem.querySelectorAll('input[type="checkbox"]');
@@ -1146,6 +1152,7 @@
             if (group) {
                 // 再次更新Vue数据
                 ['modelValue', 'value', 'checkedValues', 'selected'].some(key => VueUtils.updateData(group, key, indexes));
+                VueUtils.updateData(questionItem, 'stuAnswer', indexes.join(''));
                 
                 // 触发Vue的$forceUpdate
                 try {
