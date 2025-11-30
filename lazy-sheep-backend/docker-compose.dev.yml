@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL数据库
   postgres:
@@ -10,14 +8,11 @@ services:
       POSTGRES_USER: lazy_user
       POSTGRES_PASSWORD: lazy_password
       POSTGRES_DB: lazy_sheep
-      # 性能优化配置
       POSTGRES_INITDB_ARGS: "-E UTF8"
     ports:
       - "5432:5432"
     volumes:
-      # 数据持久化
       - postgres-data:/var/lib/postgresql/data
-      # 自定义配置
       - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
     command: postgres -c config_file=/etc/postgresql/postgresql.conf
     healthcheck:
@@ -26,55 +21,26 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis缓存
-  redis:
-    image: redis:7-alpine
-    container_name: lazy-sheep-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # PostgreSQL管理界面（可选）
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: lazy-sheep-pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@lazy-sheep.local
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-    ports:
-      - "5050:80"
-    volumes:
-      - pgadmin-data:/var/lib/pgadmin
-    depends_on:
-      - postgres
-
-  # Redis管理界面（可选）
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: lazy-sheep-redis-ui
-    restart: unless-stopped
-    environment:
-      REDIS_HOSTS: local:redis:6379
-    ports:
-      - "8081:8081"
-    depends_on:
-      - redis
+  # Redis缓存（如果本地已有Redis，可以注释掉）
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: lazy-sheep-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #     - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+  #   command: redis-server /usr/local/etc/redis/redis.conf
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
 volumes:
   postgres-data:
-  redis-data:
-  pgadmin-data:
+  # redis-data:
 
 networks:
   default:
