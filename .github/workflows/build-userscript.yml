@@ -1,0 +1,41 @@
+name: Build Userscript
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lazy-sheep-userscript/src/**'
+      - 'lazy-sheep-userscript/config/**'
+      - 'lazy-sheep-userscript/package.json'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: lazy-sheep-userscript/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: lazy-sheep-userscript
+        run: npm ci
+      
+      - name: Build userscript
+        working-directory: lazy-sheep-userscript
+        run: npm run build
+      
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add lazy-sheep-userscript/dist/*.user.js
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 Auto build: Update userscript [skip ci]" && git push)
