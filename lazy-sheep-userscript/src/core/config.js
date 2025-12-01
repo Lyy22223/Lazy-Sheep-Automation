@@ -11,7 +11,7 @@ class Config {
             // API配置
             api: {
                 baseUrl: 'http://39.104.15.174:8000',
-                key: 'sk-test-lazy-sheep-dev-2024',  // 测试API密钥
+                key: 'sk-vTSPwXntGa8exBId3hsG-VWSs-RZ3xzApBnaOCkGa4E',  // 免费API密钥
                 searchEndpoint: '/api/search',
                 aiEndpoint: '/api/ai/answer',
                 keyInfoEndpoint: '/api/key/info',
