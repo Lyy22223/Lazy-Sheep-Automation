@@ -46,6 +46,17 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "🤖 Auto build: Update userscript [skip ci]"
-            git pull --rebase origin main
-            git push origin main
+            
+            # 获取最新的远程更新
+            git fetch origin main
+            
+            # Rebase到最新的main分支
+            git rebase origin/main || {
+              echo "Rebase failed, aborting"
+              git rebase --abort
+              exit 1
+            }
+            
+            # 推送更新
+            git push origin HEAD:main
           fi
