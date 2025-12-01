@@ -45,6 +45,55 @@
       <!-- 答题标签页 -->
       <a-tab-pane key="answer" tab="自动答题">
         <a-space direction="vertical" :size="16" style="width: 100%">
+          <!-- 批改结果卡片 -->
+          <a-card 
+            v-if="examResult" 
+            title="📊 批改结果" 
+            size="small"
+            :bordered="true"
+          >
+            <a-row :gutter="16">
+              <a-col :span="8">
+                <a-statistic 
+                  title="正确" 
+                  :value="examResult.correct"
+                  :value-style="{ color: '#52c41a' }"
+                  :suffix="'/' + examResult.total"
+                />
+              </a-col>
+              <a-col :span="8">
+                <a-statistic 
+                  title="错误" 
+                  :value="examResult.wrong"
+                  :value-style="{ color: '#f5222d' }"
+                  :suffix="'/' + examResult.total"
+                />
+              </a-col>
+              <a-col :span="8">
+                <a-statistic 
+                  title="正确率" 
+                  :value="examResult.accuracy"
+                  suffix="%"
+                  :value-style="{ color: examResult.accuracy >= 60 ? '#52c41a' : '#f5222d' }"
+                />
+              </a-col>
+            </a-row>
+            <a-divider style="margin: 12px 0" />
+            <a-space>
+              <a-tag v-if="examResult.uploaded > 0" color="success">
+                💾 已上传 {{examResult.uploaded}} 道正确答案
+              </a-tag>
+              <a-button 
+                v-if="examResult.wrong > 0" 
+                type="link" 
+                size="small"
+                @click="startCorrection"
+              >
+                🔧 智能纠错({{examResult.wrong}})
+              </a-button>
+            </a-space>
+          </a-card>
+
           <!-- 状态卡片 -->
           <a-card title="答题状态" size="small">
             <a-row :gutter="16">
@@ -97,11 +146,26 @@
                   答题后自动提交
                 </a-checkbox>
               </a-form-item>
+
+              <a-form-item>
+                <a-checkbox v-model:checked="answerOptions.autoCorrection">
+                  答题后自动纠错
+                </a-checkbox>
+              </a-form-item>
+
+              <a-form-item label="纠错最大重试" v-if="answerOptions.autoCorrection">
+                <a-input-number 
+                  v-model:value="answerOptions.maxRetries"
+                  :min="1"
+                  :max="5"
+                  style="width: 100%"
+                />
+              </a-form-item>
             </a-form>
           </a-card>
 
           <!-- 操作按钮 -->
-          <a-space style="width: 100%">
+          <a-space style="width: 100%" direction="vertical">
             <a-button 
               type="primary" 
               block
@@ -115,17 +179,37 @@
             
             <a-button 
               v-if="isAnswering"
+              block
               danger
               @click="stopAutoAnswer"
             >
               停止
             </a-button>
+
+            <a-button 
+              v-if="examResult && examResult.wrong > 0"
+              block
+              type="dashed"
+              :loading="isCorrecting"
+              @click="startCorrection"
+            >
+              <template #icon><BulbOutlined /></template>
+              {{ isCorrecting ? '纠错中...' : `智能纠错 (${examResult.wrong}道错题)` }}
+            </a-button>
+
+            <a-button 
+              block
+              @click="refreshExamResult"
+              :loading="isRefreshing"
+            >
+              🔄 刷新批改结果
+            </a-button>
           </a-space>
         </a-space>
       </a-tab-pane>
 
-      <!-- 纠错标签页 -->
-      <a-tab-pane key="correction" tab="智能纠错">
+      <!-- 移除独立的纠错标签页，功能已整合到答题Tab -->
+      <!-- <a-tab-pane key="correction" tab="智能纠错">
         <a-space direction="vertical" :size="16" style="width: 100%">
           <a-alert
             message="智能纠错"
@@ -169,7 +253,7 @@
             {{ isCorrecting ? '纠错中...' : '开始智能纠错' }}
           </a-button>
         </a-space>
-      </a-tab-pane>
+      </a-tab-pane> -->
 
       <!-- 刷课标签页 -->
       <a-tab-pane key="course" tab="刷课">
@@ -454,8 +538,10 @@ const logHeight = ref(180);
 const activeTab = ref('answer');
 const isAnswering = ref(false);
 const isCorrecting = ref(false);
+const isRefreshing = ref(false);
 const showResult = ref(false);
 const result = ref(null);
+const examResult = ref(null); // 批改结果
 
 // 进度
 const progress = ref({
@@ -470,7 +556,9 @@ const progress = ref({
 const answerOptions = ref({
   mode: 'both',
   skipAnswered: true,
-  autoSubmit: false
+  autoSubmit: false,
+  autoCorrection: false,  // 答题后自动纠错
+  maxRetries: 3  // 纠错最大重试次数
 });
 
 // 纠错选项
@@ -589,6 +677,43 @@ const handleSubmit = async () => {
 const handleSettings = () => {
   drawerVisible.value = true;
   activeTab.value = 'settings';
+};
+
+// 刷新批改结果
+const refreshExamResult = async () => {
+  if (isRefreshing.value) {
+    return;
+  }
+
+  try {
+    isRefreshing.value = true;
+    
+    // 调用公开的方法获取批改结果统计（会自动上传正确答案）
+    const stats = await CorrectionManager.fetchExamStatistics();
+    
+    if (stats.total === 0) {
+      message.info('暂无批改数据');
+      examResult.value = null;
+      return;
+    }
+    
+    // 更新UI状态
+    examResult.value = stats;
+    
+    // 显示成功消息
+    const msg = `📊 批改结果：${stats.correct}/${stats.total} 正确 (${stats.accuracy}%)`;
+    if (stats.uploaded > 0) {
+      message.success(`${msg} | 💾 已上传 ${stats.uploaded} 道正确答案`);
+    } else {
+      message.success(msg);
+    }
+    
+  } catch (error) {
+    logger.error('[Panel] 刷新批改结果失败:', error);
+    message.error('刷新失败: ' + error.message);
+  } finally {
+    isRefreshing.value = false;
+  }
 };
 
 const startCorrection = async () => {
@@ -1045,6 +1170,21 @@ onMounted(() => {
   
   // 拦截日志输出
   interceptLogs();
+  
+  // 🔥 页面加载时自动拉取批改结果（仅在习题页面）
+  setTimeout(async () => {
+    try {
+      // 判断是否为习题页面（writePaper/busywork）
+      const isExercisePage = window.location.pathname.includes('/writePaper/busywork/');
+      
+      if (isExercisePage) {
+        logger.info('[Panel] 检测到习题页面，自动拉取批改结果...');
+        await refreshExamResult();
+      }
+    } catch (error) {
+      logger.warn('[Panel] 自动拉取批改结果失败:', error);
+    }
+  }, 2000); // 延迟2秒，等待页面加载完成
 });
 </script>
 

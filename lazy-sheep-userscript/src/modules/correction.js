@@ -23,6 +23,8 @@ class CorrectionManager {
         this.maxRetries = 3;  // 最多纠错3次
         this.correctionHistory = [];
         this.latestErrors = [];  // 最新的错题列表
+        this.latestCorrectCount = 0;  // 最新的正确题目数量
+        this.latestTotalCount = 0;  // 最新的总题目数量
     }
 
     /**
@@ -199,9 +201,14 @@ class CorrectionManager {
             // 解析所有题目（包括正确和错误的）
             const { errors, correctQuestions } = this._parseQuestionsFromResponse(responseData);
             
+            // 保存统计信息
+            this.latestCorrectCount = correctQuestions.length;
+            this.latestTotalCount = errors.length + correctQuestions.length;
+            
             logger.info(`[Correction] 从批改接口解析到:`);
             logger.info(`  - 正确题目: ${correctQuestions.length} 道`);
             logger.info(`  - 错误题目: ${errors.length} 道`);
+            logger.info(`  - 总计: ${this.latestTotalCount} 道`);
 
             // 🔥 上传所有正确答案到云端（异步，不阻塞）
             if (correctQuestions.length > 0) {
@@ -752,6 +759,35 @@ class CorrectionManager {
      */
     clearHistory() {
         this.correctionHistory = [];
+    }
+
+    /**
+     * 获取批改结果统计（公开方法）
+     * @returns {Promise<object>} 批改结果统计
+     */
+    async fetchExamStatistics() {
+        try {
+            logger.info('[Correction] 📊 获取批改结果统计...');
+            
+            // 调用批改接口（会自动上传正确答案）
+            const errors = await this._fetchErrorsFromAPI();
+            
+            // 返回统计信息
+            return {
+                total: this.latestTotalCount,
+                correct: this.latestCorrectCount,
+                wrong: errors.length,
+                accuracy: this.latestTotalCount > 0 
+                    ? Math.round((this.latestCorrectCount / this.latestTotalCount) * 100) 
+                    : 0,
+                uploaded: this.latestCorrectCount,  // 已上传的正确答案数量
+                errors: errors
+            };
+            
+        } catch (error) {
+            logger.error('[Correction] 获取批改统计失败:', error);
+            throw error;
+        }
     }
 
     /**
