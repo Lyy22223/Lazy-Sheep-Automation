@@ -55,7 +55,7 @@ vim config/userscript-header.js
 更新以下字段：
 ```javascript
 // @version      2.0.0
-// @description  传智播客在线学习平台自动答题助手 | 支持自动答题、自动刷课、智能纠错
+// @description  在线学习平台自动化助手，支持自动答题、自动刷课、智能纠错。目前对传智播客支持最完善，持续扩展更多平台
 // @author       Lazy Sheep Team
 // @match        https://*.itcast.cn/*
 // @grant        GM_xmlhttpRequest
@@ -116,10 +116,10 @@ dir dist\czbk-answer.user.js
 2. 填写脚本信息：
 
 #### 基本信息
-- **名称（中文）**: 懒羊羊自动化平台 - 传智播客答题助手
-- **名称（英文）**: Lazy Sheep Auto Answer - CZBK Helper
-- **描述（中文）**: 传智播客在线学习平台自动答题助手，支持自动答题、自动刷课、智能纠错。云端题库+AI答题双重保障，一键完成试卷/作业！
-- **描述（英文）**: Auto answer helper for CZBK online learning platform. Features: auto answer, auto course, smart correction. Cloud database + AI powered!
+- **名称（中文）**: 懒羊羊自动化平台
+- **名称（英文）**: Lazy Sheep Automation Platform
+- **描述（中文）**: 在线学习平台自动化助手，支持自动答题、自动刷课、智能纠错。云端题库+AI答题双重保障，一键完成试卷/作业！目前对传智播客支持最完善，持续扩展更多平台。
+- **描述（英文）**: Online learning platform automation assistant. Features: auto answer, auto course, smart correction. Cloud database + AI powered! Currently best support for CZBK, expanding to more platforms.
 
 #### 代码
 - 粘贴 `dist/czbk-answer.user.js` 的完整内容
