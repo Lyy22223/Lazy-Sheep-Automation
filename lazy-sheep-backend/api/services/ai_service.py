@@ -51,6 +51,13 @@ PROMPTS = {
 
 {attempted_hint}
 
+重要提示：如果上面列出了已尝试的错误答案，请务必给出完全不同的答案！
+可以尝试：
+1. 不同的表达方式（如完整写法 vs 简写）
+2. 不同的格式（如带括号 vs 不带括号）
+3. 不同的关键词组合
+4. 英文 vs 中文（如适用）
+
 答案：""",
     
     "4": """你是一个答题助手。请回答以下简答题。
@@ -114,13 +121,17 @@ class AIService:
             
             # 调用AI
             logger.info(f"调用AI: model={model}, type={question_type}")
+            
+            # 如果有已尝试答案，提高temperature增加多样性
+            temperature = 0.5 if (attempted_answers and len(attempted_answers) > 0) else 0.1
+            
             response = await client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": "你是一个专业的答题助手。"},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1,  # 降低随机性
+                temperature=temperature,
                 max_tokens=500
             )
             
@@ -128,6 +139,22 @@ class AIService:
             
             # 清理答案
             answer = AIService._clean_answer(answer, question_type, valid_keys)
+            
+            # 检查是否与已尝试答案重复
+            if attempted_answers and answer in attempted_answers:
+                logger.warning(f"AI返回了重复答案: {answer}，尝试重新生成")
+                # 如果重复，提高temperature再试一次
+                response = await client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": "你是一个专业的答题助手。请给出与之前完全不同的答案！"},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.8,  # 进一步提高多样性
+                    max_tokens=500
+                )
+                answer = response.choices[0].message.content.strip()
+                answer = AIService._clean_answer(answer, question_type, valid_keys)
             
             logger.info(f"AI答案: {answer}")
             
