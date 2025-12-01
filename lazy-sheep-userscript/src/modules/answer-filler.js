@@ -19,7 +19,7 @@
  */
 
 import { QUESTION_TYPES, DELAY_CONFIG } from '../core/constants.js';
-import { sleep, logger } from '../core/utils.js';
+import { sleep, logger, removeFillBrackets } from '../core/utils.js';
 import VueUtils from '../core/vue-utils.js';
 import KindEditorHelper from './kindeditor-helper.js';
 import SELECTORS from '../platforms/czbk/selectors.js';
@@ -183,8 +183,11 @@ class AnswerFiller {
                 return false;
             }
 
+            // 清理答案中的括号（【】和[]）
+            const cleanedAnswer = removeFillBrackets(answer);
+
             // 设置值
-            input.value = answer;
+            input.value = cleanedAnswer;
 
             // 触发input事件，让Vue监听到变化
             input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -192,7 +195,7 @@ class AnswerFiller {
 
             await sleep(DELAY_CONFIG.ANSWER_FILL);
 
-            logger.info(`[填空题] 填充成功: ${answer.substring(0, 20)}...`);
+            logger.info(`[填空题] 填充成功: ${cleanedAnswer.substring(0, 20)}...`);
             return true;
 
         } catch (error) {

@@ -215,6 +215,10 @@ class AIService:
             answer = re.sub(r'\n{2,}', '\n', answer)  # 多个换行替换为一个
             answer = re.sub(r'\n\s*\n', '\n', answer)  # 包含空白的多个换行
             
+            # 填空题：移除中文括号【】和英文括号[]
+            if question_type == "3":
+                answer = AIService._remove_fill_brackets(answer)
+            
             # 移除行首的列表符号和数字
             lines = answer.split('\n')
             cleaned_lines = []
@@ -229,6 +233,19 @@ class AIService:
             answer = '\n'.join(cleaned_lines)
         
         return answer.strip()
+    
+    @staticmethod
+    def _remove_fill_brackets(text: str) -> str:
+        """移除填空题答案中的括号（中文【】和英文[]）"""
+        import re
+        # 移除中文括号【答案】-> 答案
+        text = re.sub(r'【(.+?)】', r'\1', text)
+        # 移除英文括号[答案] -> 答案
+        text = re.sub(r'\[(.+?)\]', r'\1', text)
+        # 移除单独的括号
+        text = text.replace('【', '').replace('】', '')
+        text = text.replace('[', '').replace(']', '')
+        return text.strip()
     
     @staticmethod
     def _remove_markdown(text: str) -> str:

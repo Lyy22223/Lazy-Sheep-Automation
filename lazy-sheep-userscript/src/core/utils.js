@@ -336,3 +336,24 @@ export async function copyToClipboard(text) {
         return success;
     }
 }
+
+/**
+ * 移除填空题答案中的括号（中文【】和英文[]）
+ * @param {string} text - 原始文本
+ * @returns {string} 清理后的文本
+ */
+export function removeFillBrackets(text) {
+    if (!text || typeof text !== 'string') {
+        return text;
+    }
+    
+    // 移除中文括号【答案】-> 答案
+    text = text.replace(/【(.+?)】/g, '$1');
+    // 移除英文括号[答案] -> 答案
+    text = text.replace(/\[(.+?)\]/g, '$1');
+    // 移除单独的括号
+    text = text.replace(/【/g, '').replace(/】/g, '');
+    text = text.replace(/\[/g, '').replace(/\]/g, '');
+    
+    return text.trim();
+}
