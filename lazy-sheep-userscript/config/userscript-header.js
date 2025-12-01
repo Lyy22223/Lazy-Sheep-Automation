@@ -16,10 +16,10 @@
 // @grant        unsafeWindow
 // @connect      localhost
 // @connect      127.0.0.1
-// @connect      *
+// @connect      39.104.15.174
+// @connect      api.deepseek.com
+// @connect      stu.ityxb.com
+// @connect      *.itcast.cn
 // @run-at       document-end
 // @license      MIT
-// 开发环境下注释掉这些 URL（ScriptCat 不支持 localhost）
-// @updateURL    http://localhost:8888/lazy-sheep-auto-answer.dev.user.js
-// @downloadURL  http://localhost:8888/lazy-sheep-auto-answer.dev.user.js
 // ==/UserScript==
