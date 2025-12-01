@@ -350,6 +350,11 @@
         </a-space>
       </a-tab-pane>
 
+      <!-- 错题记录标签页 -->
+      <a-tab-pane key="errors" tab="错题记录">
+        <ErrorListTab />
+      </a-tab-pane>
+
       <!-- 设置标签页 -->
       <a-tab-pane key="settings" tab="设置">
         <a-space direction="vertical" :size="16" style="width: 100%">
@@ -501,6 +506,14 @@
     :result="result"
     @close="showResult = false"
   />
+  
+  <!-- 纠错进度侧边栏 -->
+  <CorrectionProgress
+    :visible="showCorrectionProgress"
+    :current-round="correctionRound"
+    :max-rounds="correctionOptions.maxRetries"
+    @close="showCorrectionProgress = false"
+  />
 </template>
 
 <script setup>
@@ -518,6 +531,8 @@ import {
 } from '@ant-design/icons-vue';
 import { message, Modal } from 'ant-design-vue';
 import ResultDisplay from './result-display.vue';
+import ErrorListTab from './components/error-list-tab.vue';
+import CorrectionProgress from './components/correction-progress.vue';
 import AutoAnswer from '../modules/auto-answer.js';
 import SubmitHandler from '../modules/submit-handler.js';
 import CorrectionManager from '../modules/correction.js';
@@ -542,6 +557,8 @@ const isRefreshing = ref(false);
 const showResult = ref(false);
 const result = ref(null);
 const examResult = ref(null); // 批改结果
+const showCorrectionProgress = ref(false); // 纠错进度侧边栏
+const correctionRound = ref(1); // 当前纠错轮次
 
 // 进度
 const progress = ref({
@@ -723,11 +740,16 @@ const startCorrection = async () => {
 
   try {
     isCorrecting.value = true;
+    correctionRound.value = 1;
+    showCorrectionProgress.value = true; // 显示进度侧边栏
     message.loading('正在拉取错题...', 0);
 
     // 调用拉取并纠错方法
     const correctionResult = await CorrectionManager.fetchAndCorrect({
-      maxRetries: correctionOptions.value.maxRetries
+      maxRetries: correctionOptions.value.maxRetries,
+      onRoundChange: (round) => {
+        correctionRound.value = round; // 更新当前轮次
+      }
     });
 
     message.destroy();

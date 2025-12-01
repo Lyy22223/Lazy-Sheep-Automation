@@ -391,6 +391,7 @@ class CorrectionManager {
         try {
             this.correcting = true;
             const maxRetries = options.maxRetries || 3;
+            const onRoundChange = options.onRoundChange; // 轮次变化回调
             
             logger.info(`[Correction] 🔧 开始纠错: ${errors.length}道错题`);
             logger.info(`[Correction] 最大重试次数: ${maxRetries}`);
@@ -402,12 +403,21 @@ class CorrectionManager {
             // 循环纠错，最多重试 maxRetries 次
             while (attempt < maxRetries && remainingErrors.length > 0) {
                 attempt++;
+                
+                // 通知轮次变化
+                if (onRoundChange) {
+                    onRoundChange(attempt);
+                }
+                
                 logger.info(`\n[Correction] 📍 第 ${attempt}/${maxRetries} 轮纠错`);
                 logger.info(`[Correction] 待纠错题目: ${remainingErrors.length} 道`);
 
                 // 1. 并发填充所有错题的新答案
                 const fillPromises = remainingErrors.map(async (error) => {
                     try {
+                        // 更新状态为纠错中
+                        ErrorTracker.updateStatus(error.questionId, 'retrying');
+                        
                         logger.info(`  📝 题目 ${error.questionId} - 生成答案...`);
                         
                         // AI生成新答案（携带已尝试答案）
@@ -477,6 +487,9 @@ class CorrectionManager {
                             finalAnswer: correctAnswer
                         });
                         
+                        // 更新ErrorTracker状态为成功
+                        ErrorTracker.updateStatus(error.questionId, 'success', correctAnswer);
+                        
                         logger.info(`  ✅ 题目 ${error.questionId} - 纠错成功！`);
                         
                         // 🔥 上传正确答案到云端（异步，不阻塞）
@@ -518,6 +531,10 @@ class CorrectionManager {
                     attemptedAnswers: error.attemptedAnswers || [],
                     message: `已尝试 ${attempt} 次，答案均被判定错误`
                 });
+                
+                // 更新ErrorTracker状态为失败
+                ErrorTracker.updateStatus(error.questionId, 'failed');
+                
                 logger.error(`\n❌ 题目 ${error.questionId} 纠错失败！`);
                 logger.error(`   题型: ${error.questionType}`);
                 logger.error(`   内容: ${error.content?.substring(0, 50)}...`);
