@@ -871,15 +871,16 @@ const startCorrection = async () => {
 const handleProgressUpdate = throttle((progressData) => {
   const { type, current, total, questionId, questionContent, answer, reason, progress: progressStats } = progressData;
   
-  // 更新实时进度
+  // 更新实时进度（显示在"正在答题"区域）
   realtimeProgress.value.current = current;
   realtimeProgress.value.total = total;
   realtimeProgress.value.currentQuestionId = questionId;
   realtimeProgress.value.currentContent = questionContent;
   
-  // 更新统计数据
+  // 更新主要统计数据（总题数、已完成、成功率）
   if (progressStats) {
-    progress.value.answered = progressStats.answered;
+    progress.value.total = total;  // 更新总题数
+    progress.value.answered = progressStats.answered;  // 更新已完成
     progress.value.success = progressStats.success;
     progress.value.failed = progressStats.failed;
     progress.value.skipped = progressStats.skipped;
@@ -896,6 +897,15 @@ const handleProgressUpdate = throttle((progressData) => {
 const startAutoAnswer = async () => {
   try {
     isAnswering.value = true;
+    
+    // 重置进度数据
+    progress.value = {
+      total: 0,
+      answered: 0,
+      success: 0,
+      failed: 0,
+      skipped: 0
+    };
     
     // 重置实时进度
     realtimeProgress.value = {

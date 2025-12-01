@@ -5,7 +5,7 @@
  */
 
 import { logger, sleep } from '../core/utils.js';
-import { DELAY_CONFIG } from '../core/constants.js';
+import { DELAY_CONFIG, QUESTION_TYPES } from '../core/constants.js';
 import PlatformManager from '../platforms/manager.js';
 import APIClient from '../network/api-client.js';
 import DataTransformer from '../network/data-transformer.js';
