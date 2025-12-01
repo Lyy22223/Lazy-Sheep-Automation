@@ -191,7 +191,14 @@ ssh root@39.104.15.174
 
 ### 2. 上传代码
 
-**使用 SCP 上传**
+**方式一：Git克隆（推荐）**
+```bash
+cd /opt
+git clone https://github.com/Lyy22223/Lazy-Sheep-Automation.git
+cd Lazy-Sheep-Automation/lazy-sheep-backend
+```
+
+**方式二：SCP上传**
 ```bash
 # 在本地执行
 scp -r lazy-sheep-backend root@39.104.15.174:/opt/
@@ -231,14 +238,28 @@ curl -X POST http://39.104.15.174:8000/api/search \
 
 ## 📝 发布后工作
 
-### 1. 更新文档链接
+### 1. 创建 GitHub Release
+
+1. 进入 [GitHub Releases](https://github.com/Lyy22223/Lazy-Sheep-Automation/releases)
+2. 点击 **「Draft a new release」**
+3. 填写信息：
+   - Tag: `v2.0.0`
+   - Title: `v2.0.0 - 🎉 重大更新：全新架构重构`
+   - 描述: 复制 `CHANGELOG.md` 中的内容
+4. 上传附件：
+   - `dist/lazy-sheep-auto-answer.user.js`
+5. 发布 Release
+
+### 2. 更新文档链接
 
 在 `RELEASE_README.md` 中更新：
 - Greasy Fork 安装链接
+- GitHub Release 下载链接
 
-### 2. 监控和反馈
+### 3. 监控和反馈
 
 - 关注 Greasy Fork 的用户反馈
+- 监控 GitHub Issues 和 Discussions
 - 查看服务器日志
 - 收集用户使用数据
 - 及时回复用户评论
@@ -303,11 +324,17 @@ LIMIT 30;
 - [ ] ✅ 截图已准备
 - [ ] ✅ 功能已测试
 - [ ] ⬜ 发布到 Greasy Fork
+- [ ] ⬜ 创建 GitHub Release
 - [ ] ⬜ 更新文档链接
 
 ---
 
 ## 🔗 相关信息
+
+**开源仓库**：
+- GitHub: https://github.com/Lyy22223/Lazy-Sheep-Automation
+- Issues: https://github.com/Lyy22223/Lazy-Sheep-Automation/issues
+- Releases: https://github.com/Lyy22223/Lazy-Sheep-Automation/releases
 
 **生产环境**：
 - 后端API: http://39.104.15.174:8000
@@ -317,6 +344,7 @@ LIMIT 30;
 **文档**：
 - 用户文档: `RELEASE_README.md`
 - 部署文档: `lazy-sheep-backend/DEPLOYMENT.md`
+- 贡献指南: `CONTRIBUTING.md`
 - 更新日志: `CHANGELOG.md`
 
 ---
@@ -336,6 +364,8 @@ LIMIT 30;
 
 ### 用户支持
 - 在 Greasy Fork 回复用户评论
+- 在 GitHub Issues 处理问题反馈
+- 在 GitHub Discussions 回答用户问题
 - 提供 QQ群等交流渠道
 - 及时处理用户反馈
 

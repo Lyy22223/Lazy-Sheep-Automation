@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        working-directory: lazy-sheep-userscript
+        run: npm ci
+      
+      - name: Build userscript
+        working-directory: lazy-sheep-userscript
+        run: npm run build
+      
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            lazy-sheep-userscript/dist/*.user.js
+            CHANGELOG.md
+            LICENSE
+          body: |
+            ## 🎉 懒羊羊自动化平台 v${{ steps.get_version.outputs.VERSION }}
+            
+            ### 📦 安装方式
+            1. 安装 [Tampermonkey](https://www.tampermonkey.net/) 浏览器扩展
+            2. 点击下方的 `lazy-sheep-auto-answer.user.js` 文件下载
+            3. Tampermonkey 会自动识别并安装
+            
+            ### 📝 更新内容
+            详见 [CHANGELOG.md](https://github.com/Lyy22223/Lazy-Sheep-Automation/blob/main/CHANGELOG.md)
+            
+            ### 🐛 问题反馈
+            - [GitHub Issues](https://github.com/Lyy22223/Lazy-Sheep-Automation/issues)
+            - [GitHub Discussions](https://github.com/Lyy22223/Lazy-Sheep-Automation/discussions)
+            
+            ### 🙏 感谢
+            感谢所有贡献者的付出！
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

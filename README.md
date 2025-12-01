@@ -1,10 +1,14 @@
 # 懒羊羊自动化平台 🐑
 
-> 基于现代化前后端分离架构的智能答题系统
+> 在线学习平台自动化助手 | 支持自动答题、自动刷课、智能纠错
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/Lyy22223/Lazy-Sheep-Automation)](https://github.com/Lyy22223/Lazy-Sheep-Automation/releases)
+[![License](https://img.shields.io/github/license/Lyy22223/Lazy-Sheep-Automation)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Lyy22223/Lazy-Sheep-Automation)](https://github.com/Lyy22223/Lazy-Sheep-Automation/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/Lyy22223/Lazy-Sheep-Automation)](https://github.com/Lyy22223/Lazy-Sheep-Automation/issues)
 [![Vue](https://img.shields.io/badge/Vue-3.x-brightgreen.svg)](https://vuejs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
+[![CI](https://github.com/Lyy22223/Lazy-Sheep-Automation/workflows/CI/badge.svg)](https://github.com/Lyy22223/Lazy-Sheep-Automation/actions)
 
 ## 📖 项目简介
 
@@ -236,7 +240,14 @@ docker-compose up -d
 
 ## 📄 许可证
 
-本项目仅供学习和研究使用，请遵守相关法律法规和平台规定。
+本项目采用 [MIT License](LICENSE) 开源协议。
+
+### ⚠️ 免责声明
+
+- 本工具仅供学习交流使用
+- 请勿用于违反平台规定的行为
+- 使用本工具造成的任何后果由用户自行承担
+- 开发者不承担任何法律责任
 
 ---
 

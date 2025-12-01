@@ -2,8 +2,11 @@
 
 > 在线学习平台自动化助手 | 支持自动答题、自动刷课、智能纠错 | 目前对传智播客（CZBK）支持最完善
 
+[![GitHub release](https://img.shields.io/github/v/release/Lyy22223/Lazy-Sheep-Automation)](https://github.com/Lyy22223/Lazy-Sheep-Automation/releases)
+[![License](https://img.shields.io/github/license/Lyy22223/Lazy-Sheep-Automation)](https://github.com/Lyy22223/Lazy-Sheep-Automation/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Lyy22223/Lazy-Sheep-Automation)](https://github.com/Lyy22223/Lazy-Sheep-Automation/stargazers)
 [![Tampermonkey](https://img.shields.io/badge/Tampermonkey-v4.0%2B-brightgreen.svg)](https://www.tampermonkey.net/)
-[![Version](https://img.shields.io/badge/version-2.0.0-orange.svg)]()
+[![Greasy Fork](https://img.shields.io/badge/Greasy%20Fork-Install-orange.svg)](https://greasyfork.org/)
 
 ---
 
@@ -303,14 +306,56 @@
 
 ---
 
+## 🤝 参与贡献
+
+本项目是开源项目，欢迎各种形式的贡献！
+
+### 如何贡献
+1. 🌟 Star 本项目支持我们
+2. 🐛 [提交 Bug](https://github.com/Lyy22223/Lazy-Sheep-Automation/issues)
+3. 💡 [建议新功能](https://github.com/Lyy22223/Lazy-Sheep-Automation/discussions)
+4. 🔧 [提交 Pull Request](https://github.com/Lyy22223/Lazy-Sheep-Automation/pulls)
+
+详细贡献指南请查看 [CONTRIBUTING.md](https://github.com/Lyy22223/Lazy-Sheep-Automation/blob/main/CONTRIBUTING.md)
+
+---
+
 ## 📞 技术支持
 
-遇到问题或有建议？请通过以下方式反馈：
+遇到问题或有建议？
 
+- 🐛 [GitHub Issues](https://github.com/Lyy22223/Lazy-Sheep-Automation/issues) - Bug报告和功能请求
+- 💬 [GitHub Discussions](https://github.com/Lyy22223/Lazy-Sheep-Automation/discussions) - 讨论和问答
 - 📧 Email: support@example.com
 - 💬 QQ群: 待更新
 
 ---
+
+## 📜 开源协议
+
+本项目采用 [MIT License](https://github.com/Lyy22223/Lazy-Sheep-Automation/blob/main/LICENSE) 开源协议。
+
+这意味着你可以：
+- ✅ 自由使用、复制、修改、合并、发布、分发
+- ✅ 用于商业用途
+- ✅ 私有使用
+
+但你必须：
+- 📝 在副本中包含原始许可证和版权声明
+
+---
+
+## 🙏 鸣谢
+
+感谢所有为本项目做出贡献的开发者！
+
+[![Contributors](https://contrib.rocks/image?repo=Lyy22223/Lazy-Sheep-Automation)](https://github.com/Lyy22223/Lazy-Sheep-Automation/graphs/contributors)
+
+### 技术栈
+- [Vue 3](https://vuejs.org/) - 渐进式JavaScript框架
+- [Ant Design Vue](https://antdv.com/) - 企业级UI组件库
+- [FastAPI](https://fastapi.tiangolo.com/) - 现代Python Web框架
+- [DeepSeek AI](https://www.deepseek.com/) - 强大的AI模型
 
 ---
 
