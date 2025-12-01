@@ -6,6 +6,7 @@
     "scripts": {
         "dev": "webpack --config config/webpack.config.js --mode development --watch",
         "build": "webpack --config config/webpack.config.js --mode production",
+        "build:obfuscate": "cross-env OBFUSCATE=true webpack --config config/webpack.config.js --mode production",
         "serve": "node serve-local.js",
         "dev:serve": "concurrently \"npm run dev\" \"npm run serve\"",
         "test": "jest",

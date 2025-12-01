@@ -16,6 +16,9 @@ const userscriptHeader = fs.readFileSync(
 
 module.exports = (env, argv) => {
     const isProduction = argv.mode === 'production';
+    // 是否启用代码混淆（默认禁用，因为会导致文件体积暴增3-5倍）
+    // 对于油猴脚本，混淆不是必需的，Webpack的minimize已经足够
+    const enableObfuscation = process.env.OBFUSCATE === 'true';
 
     return {
         entry: './src/main.js',
@@ -84,7 +87,9 @@ module.exports = (env, argv) => {
 
         optimization: {
             minimize: isProduction,
-            usedExports: true
+            usedExports: true,
+            // Tree shaking - 移除未使用的代码
+            sideEffects: false
         },
 
         plugins: [
@@ -133,27 +138,30 @@ module.exports = (env, argv) => {
                 }
             },
 
-            // 生产模式下启用代码混淆（排除Vue模板）
-            ...(isProduction ? [
+            // 可选的代码混淆（默认禁用）
+            // 启用方式: OBFUSCATE=true npm run build
+            // 注意：混淆会导致文件体积暴增（3-5倍），影响加载性能
+            // 对于油猴脚本，Webpack的minimize压缩已经足够
+            ...(isProduction && enableObfuscation ? [
                 new WebpackObfuscator({
-                    rotateStringArray: true,
-                    stringArray: true,
-                    stringArrayThreshold: 0.75,
-
-                    controlFlowFlattening: true,
-                    controlFlowFlatteningThreshold: 0.75,
-
-                    deadCodeInjection: true,
-                    deadCodeInjectionThreshold: 0.4,
-
+                    // 基础混淆
+                    compact: true,
+                    identifierNamesGenerator: 'hexadecimal',
+                    
+                    // 禁用会大幅增加体积的选项
+                    stringArray: false,              // ❌ 禁用字符串数组（会增大3倍）
+                    rotateStringArray: false,        // ❌ 禁用
+                    stringArrayThreshold: 0,         // ❌ 禁用
+                    controlFlowFlattening: false,    // ❌ 禁用控制流扁平化（增大2倍）
+                    deadCodeInjection: false,        // ❌ 禁用死代码注入（增大1.5倍）
+                    
+                    // 基础保护
+                    renameGlobals: false,
+                    selfDefending: false,            // ❌ 禁用自我保护（会增大）
                     debugProtection: false,
                     disableConsoleOutput: false,
-
-                    identifierNamesGenerator: 'hexadecimal',
-
-                    log: false,
-                    renameGlobals: false,
-
+                    
+                    // 保留油猴API
                     reservedNames: [
                         'GM_getValue',
                         'GM_setValue',
@@ -163,17 +171,9 @@ module.exports = (env, argv) => {
                         'GM_unregisterMenuCommand',
                         'unsafeWindow'
                     ],
-
-                    selfDefending: true,
-                    seed: 0,
-
-                    splitStrings: true,
-                    splitStringsChunkLength: 10,
-
-                    stringArrayEncoding: ['base64'],
+                    
                     target: 'browser',
-                    transformObjectKeys: true,
-                    unicodeEscapeSequence: false
+                    log: false
                 }, [])
             ] : [])
         ],
