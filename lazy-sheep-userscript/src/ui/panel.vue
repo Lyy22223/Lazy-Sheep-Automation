@@ -40,6 +40,7 @@
     placement="right"
     :width="400"
     :closable="true"
+    :z-index="1000"
   >
     <a-tabs v-model:activeKey="activeTab">
       <!-- 答题标签页 -->

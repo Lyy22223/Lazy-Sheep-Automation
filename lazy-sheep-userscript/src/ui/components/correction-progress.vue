@@ -243,29 +243,31 @@ const toggleFailed = () => {
   right: 440px;
   top: 50%;
   transform: translateY(-50%);
-  width: 280px;
-  max-height: 80vh;
+  width: 300px;
+  max-height: 85vh;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1);
+  z-index: 2000;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border: 1px solid #e8e8e8;
 }
 
 .progress-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  padding: 14px 18px;
+  background: #fafafa;
+  border-bottom: 1px solid #e8e8e8;
 }
 
 .progress-title {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  color: #262626;
 }
 
 .progress-content {
@@ -355,16 +357,28 @@ const toggleFailed = () => {
 .success-section {
   border-left: 3px solid #52c41a;
   padding-left: 12px;
+  background: #f6ffed;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
 }
 
 .retrying-section {
   border-left: 3px solid #1890ff;
   padding-left: 12px;
+  background: #e6f7ff;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
 }
 
 .failed-section {
   border-left: 3px solid #f5222d;
   padding-left: 12px;
+  background: #fff1f0;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
 }
 
 /* 滚动条样式 */

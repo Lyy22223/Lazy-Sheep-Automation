@@ -68,97 +68,118 @@
     </a-card>
 
     <!-- 错题列表 -->
-    <a-card title="错题列表" size="small">
-      <a-empty v-if="errors.length === 0" description="暂无错题" />
-      
-      <a-collapse v-else accordion>
-        <a-collapse-panel 
-          v-for="error in errors" 
-          :key="error.questionId"
-          :header="getErrorHeader(error)"
-        >
-          <template #extra>
-            <a-tag :color="getStatusColor(error.status)">
+    <div v-if="errors.length === 0">
+      <a-empty description="暂无错题" />
+    </div>
+    
+    <div v-else class="error-list">
+      <a-card 
+        v-for="error in errors" 
+        :key="error.questionId"
+        size="small"
+        class="error-card"
+        :class="'error-card-' + error.status"
+      >
+        <!-- 卡片头部 -->
+        <template #title>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 13px; font-weight: 500; color: #262626; margin-bottom: 4px;">
+                {{ getQuestionTypeName(error.questionType) }}
+              </div>
+              <div style="font-size: 12px; color: #8c8c8c; font-family: monospace;">
+                {{ error.questionId.substring(0, 12) }}...
+              </div>
+            </div>
+            <a-tag :color="getStatusColor(error.status)" style="margin: 0;">
               {{ getStatusText(error.status) }}
             </a-tag>
-          </template>
-          
-          <!-- 题目详情 -->
-          <a-descriptions bordered size="small" :column="1">
-            <a-descriptions-item label="题目ID">
-              <a-typography-text copyable>{{ error.questionId }}</a-typography-text>
-            </a-descriptions-item>
-            
-            <a-descriptions-item label="题型">
-              {{ getQuestionTypeName(error.questionType) }}
-            </a-descriptions-item>
-            
-            <a-descriptions-item label="题目内容">
+          </div>
+        </template>
+        
+        <!-- 卡片内容 -->
+        <div class="error-content">
+          <!-- 题目内容 -->
+          <div class="content-section">
+            <div class="section-label">题目内容</div>
+            <div class="section-value" style="white-space: pre-wrap; word-break: break-word;">
               {{ error.content }}
-            </a-descriptions-item>
-            
-            <a-descriptions-item v-if="error.options && error.options.length > 0" label="选项">
-              <div v-for="(opt, index) in error.options" :key="index">
-                {{ String.fromCharCode(65 + index) }}. {{ opt }}
+            </div>
+          </div>
+          
+          <!-- 选项 -->
+          <div v-if="error.options && error.options.length > 0" class="content-section">
+            <div class="section-label">选项</div>
+            <div class="section-value">
+              <div v-for="(opt, index) in error.options" :key="index" class="option-item">
+                <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
+                <span style="word-break: break-word; white-space: pre-wrap;">{{ opt }}</span>
               </div>
-            </a-descriptions-item>
-            
-            <a-descriptions-item label="我的答案">
+            </div>
+          </div>
+          
+          <!-- 错误答案 -->
+          <div class="content-section">
+            <div class="section-label">我的答案</div>
+            <div class="section-value">
               <a-tag color="error">{{ error.wrongAnswer || '未答' }}</a-tag>
-            </a-descriptions-item>
-            
-            <a-descriptions-item label="已尝试">
-              <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            </div>
+          </div>
+          
+          <!-- 已尝试答案 -->
+          <div class="content-section">
+            <div class="section-label">已尝试 ({{ error.attemptCount || 0 }}次)</div>
+            <div class="section-value">
+              <div v-if="error.attemptedAnswers.length > 0" style="display: flex; gap: 6px; flex-wrap: wrap;">
                 <a-tag 
                   v-for="(ans, idx) in error.attemptedAnswers" 
                   :key="idx"
-                  color="warning"
+                  color="orange"
                 >
                   {{idx + 1}}. {{ ans }}
                 </a-tag>
-                <span v-if="error.attemptedAnswers.length === 0" style="color: #999;">
-                  暂无
-                </span>
               </div>
-            </a-descriptions-item>
-            
-            <a-descriptions-item label="尝试次数">
-              {{ error.attemptCount || 0 }} 次
-            </a-descriptions-item>
-            
-            <a-descriptions-item label="最后更新">
-              {{ formatTime(error.lastAttemptTime) }}
-            </a-descriptions-item>
-          </a-descriptions>
+              <span v-else style="color: #bfbfbf; font-size: 12px;">暂无尝试</span>
+            </div>
+          </div>
           
-          <!-- 操作按钮 -->
-          <a-divider style="margin: 12px 0" />
-          <a-space>
-            <a-button 
-              type="primary" 
-              size="small"
-              @click="handleManualEdit(error)"
-            >
-              ✏️ 手动修改
-            </a-button>
-            <a-button 
-              size="small"
-              @click="handleRetry(error)"
-              :disabled="error.status === 'retrying'"
-            >
-              🔄 再次尝试
-            </a-button>
-            <a-button 
-              size="small"
-              danger
-              @click="handleDelete(error)"
-            >
-              🗑️ 删除
-            </a-button>
-          </a-space>
-        </a-collapse-panel>
-      </a-collapse>
-    </a-card>
+          <!-- 最后更新 -->
+          <div class="content-section" style="border-bottom: none; padding-bottom: 0;">
+            <div class="section-label">最后更新</div>
+            <div class="section-value" style="font-size: 12px; color: #8c8c8c;">
+              {{ formatTime(error.lastAttemptTime) }}
+            </div>
+          </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <template #actions>
+          <a-button 
+            type="link" 
+            size="small"
+            @click="handleManualEdit(error)"
+          >
+            ✏️ 手动修改
+          </a-button>
+          <a-button 
+            type="link"
+            size="small"
+            @click="handleRetry(error)"
+            :disabled="error.status === 'retrying'"
+          >
+            🔄 重试
+          </a-button>
+          <a-button 
+            type="link"
+            size="small"
+            danger
+            @click="handleDelete(error)"
+          >
+            🗑️ 删除
+          </a-button>
+        </template>
+      </a-card>
+    </div>
   </a-space>
   
   <!-- 手动修改弹窗 -->
@@ -387,7 +408,77 @@ const clearAll = () => {
 </script>
 
 <style scoped>
-.log-item {
-  margin-bottom: 8px;
+.error-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.error-card {
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+  transition: all 0.3s;
+}
+
+.error-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.error-card-pending {
+  border-left: 3px solid #faad14;
+}
+
+.error-card-retrying {
+  border-left: 3px solid #1890ff;
+  background: #f0f7ff;
+}
+
+.error-card-success {
+  border-left: 3px solid #52c41a;
+  background: #f6ffed;
+}
+
+.error-card-failed {
+  border-left: 3px solid #f5222d;
+  background: #fff1f0;
+}
+
+.error-content {
+  padding: 4px 0;
+}
+
+.content-section {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.content-section:last-child {
+  border-bottom: none;
+}
+
+.section-label {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.section-value {
+  font-size: 13px;
+  color: #262626;
+  line-height: 1.6;
+}
+
+.option-item {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  line-height: 1.6;
+}
+
+.option-label {
+  font-weight: 500;
+  color: #1890ff;
+  min-width: 20px;
 }
 </style>

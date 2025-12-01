@@ -9,6 +9,7 @@
     title="答题结果"
     :footer="null"
     :width="600"
+    :z-index="2100"
     @cancel="handleClose"
   >
     <a-result
