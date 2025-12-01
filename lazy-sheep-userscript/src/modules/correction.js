@@ -13,6 +13,7 @@
 import { logger, sleep } from '../core/utils.js';
 import { QUESTION_TYPES, CORRECTION_STRATEGIES } from '../core/constants.js';
 import APIClient from '../network/api-client.js';
+import DataTransformer from '../network/data-transformer.js';
 import AnswerFiller from './answer-filler.js';
 import SubmitHandler from './submit-handler.js';
 
@@ -195,9 +196,20 @@ class CorrectionManager {
             
             const responseData = result.resultObject;
 
-            // 解析错题
-            const errors = this._parseErrorsFromResponse(responseData);
-            logger.info(`[Correction] 从批改接口解析到 ${errors.length} 道错题`);
+            // 解析所有题目（包括正确和错误的）
+            const { errors, correctQuestions } = this._parseQuestionsFromResponse(responseData);
+            
+            logger.info(`[Correction] 从批改接口解析到:`);
+            logger.info(`  - 正确题目: ${correctQuestions.length} 道`);
+            logger.info(`  - 错误题目: ${errors.length} 道`);
+
+            // 🔥 上传所有正确答案到云端（异步，不阻塞）
+            if (correctQuestions.length > 0) {
+                this._uploadCorrectQuestions(correctQuestions).catch(err => {
+                    logger.warn('[Correction] 批量上传正确答案失败:', err);
+                });
+            }
+
             return errors;
 
         } catch (error) {
@@ -216,17 +228,18 @@ class CorrectionManager {
     }
 
     /**
-     * 解析批改响应中的错题
+     * 解析批改响应中的所有题目（正确+错误）
      * @private
      */
-    _parseErrorsFromResponse(data) {
+    _parseQuestionsFromResponse(data) {
         const errors = [];
+        const correctQuestions = [];
         const questionTypes = [
             { name: 'danxuan', type: '0' },
             { name: 'duoxuan', type: '1' },
             { name: 'panduan', type: '2' },
             { name: 'tiankong', type: '3' },
-            { name: 'jianda', type: '4' }  // 简答题不纠错
+            { name: 'jianda', type: '4' }
         ];
 
         questionTypes.forEach(({ name, type }) => {
@@ -254,53 +267,56 @@ class CorrectionManager {
             });
             
             questions.forEach(q => {
-                // 检查是否错误
-                const isWrong = q.correct === false;
+                // 查找对应的DOM元素（使用 id 字段）
+                const questionId = q.id;
+                const element = document.querySelector(`[data-id="${questionId}"]`);
                 
-                if (isWrong) {
-                    // 查找对应的DOM元素（使用 id 字段）
-                    const questionId = q.id;
-                    const element = document.querySelector(`[data-id="${questionId}"]`);
-                    
+                // 解析选项
+                let options = [];
+                if (q.options && typeof q.options === 'string') {
+                    try {
+                        options = JSON.parse(q.options);
+                    } catch (e) {
+                        logger.warn(`[Correction] 解析选项失败: ${questionId}`);
+                    }
+                } else if (q.questionOptionList && Array.isArray(q.questionOptionList)) {
+                    options = q.questionOptionList.map(opt => opt.text);
+                }
+                
+                const questionData = {
+                    questionId: questionId,
+                    questionType: q.questionType || type,
+                    content: q.questionContentText || q.questionContent || '',
+                    options: options,
+                    stuAnswer: q.stuAnswer || '',
+                    correctAnswer: q.answer || '',
+                    element: element,
+                    correct: q.correct
+                };
+                
+                // 区分正确和错误的题目
+                if (q.correct === false) {
+                    // 错题
                     if (!element) {
                         logger.warn(`[Correction] 未找到题目元素: ${questionId}`);
                     }
                     
-                    // 解析选项
-                    let options = [];
-                    if (q.options && typeof q.options === 'string') {
-                        try {
-                            // options 是 JSON 字符串，需要解析
-                            options = JSON.parse(q.options);
-                        } catch (e) {
-                            logger.warn(`[Correction] 解析选项失败: ${questionId}`);
-                        }
-                    } else if (q.questionOptionList && Array.isArray(q.questionOptionList)) {
-                        // 从 questionOptionList 提取
-                        options = q.questionOptionList.map(opt => opt.text);
-                    }
-                    
-                    // 提取错误答案
-                    const wrongAnswer = q.stuAnswer || '';
-                    
                     errors.push({
-                        questionId: questionId,
-                        questionType: q.questionType || type,
-                        content: q.questionContentText || q.questionContent || '',
-                        options: options,
-                        wrongAnswer: wrongAnswer,
-                        correctAnswer: q.answer || '',
-                        element: element,
-                        correct: false
+                        ...questionData,
+                        wrongAnswer: questionData.stuAnswer
                     });
                     
-                    logger.debug(`[Correction] 找到错题: ${questionId} (类型${q.questionType}) - ${wrongAnswer}`);
+                    logger.debug(`[Correction] 找到错题: ${questionId} (类型${q.questionType})`);
+                } else if (q.correct === true) {
+                    // 正确的题目 - 准备上传
+                    correctQuestions.push(questionData);
+                    logger.debug(`[Correction] 找到正确题目: ${questionId} (类型${q.questionType})`);
                 }
             });
         });
 
-        logger.info(`[Correction] 总共解析到 ${errors.length} 道错题`);
-        return errors;
+        logger.info(`[Correction] 解析完成 - 正确: ${correctQuestions.length}, 错误: ${errors.length}`);
+        return { errors, correctQuestions };
     }
 
     /**
@@ -395,13 +411,21 @@ class CorrectionManager {
                 remainingErrors.forEach(error => {
                     if (!stillWrongIds.has(error.questionId)) {
                         // 这道题已经不在错题列表中了，说明纠正成功
+                        const correctAnswer = error.attemptedAnswers[error.attemptedAnswers.length - 1];
+                        
                         finalResults.push({
                             questionId: error.questionId,
                             success: true,
                             attempts: attempt,
-                            finalAnswer: error.attemptedAnswers[error.attemptedAnswers.length - 1]
+                            finalAnswer: correctAnswer
                         });
+                        
                         logger.info(`  ✅ 题目 ${error.questionId} - 纠错成功！`);
+                        
+                        // 🔥 上传正确答案到云端（异步，不阻塞）
+                        this._uploadCorrectAnswer(error, correctAnswer).catch(err => {
+                            logger.warn(`  ⚠️ 题目 ${error.questionId} - 上传答案失败:`, err);
+                        });
                     }
                 });
 
@@ -574,6 +598,144 @@ class CorrectionManager {
         // 组合使用排除法和AI
         // 先用AI重新答题
         return await this._aiCorrection(error);
+    }
+
+    /**
+     * 批量上传正确答案到云端
+     * @private
+     * @param {Array} correctQuestions - 正确的题目列表
+     */
+    async _uploadCorrectQuestions(correctQuestions) {
+        try {
+            logger.info(`[Correction] 🚀 开始批量上传 ${correctQuestions.length} 道正确答案...`);
+            
+            let successCount = 0;
+            let failedCount = 0;
+
+            // 并发上传，控制并发数为5
+            const batchSize = 5;
+            for (let i = 0; i < correctQuestions.length; i += batchSize) {
+                const batch = correctQuestions.slice(i, i + batchSize);
+                
+                const results = await Promise.allSettled(
+                    batch.map(q => this._uploadSingleCorrectAnswer(q))
+                );
+
+                results.forEach((result, index) => {
+                    if (result.status === 'fulfilled' && result.value) {
+                        successCount++;
+                    } else {
+                        failedCount++;
+                        const question = batch[index];
+                        logger.warn(`  ⚠️ 上传失败: ${question.questionId}`);
+                    }
+                });
+
+                // 避免请求过快
+                if (i + batchSize < correctQuestions.length) {
+                    await sleep(200);
+                }
+            }
+
+            logger.info(`[Correction] ✅ 批量上传完成 - 成功: ${successCount}, 失败: ${failedCount}`);
+            
+        } catch (error) {
+            logger.error('[Correction] 批量上传异常:', error);
+        }
+    }
+
+    /**
+     * 上传单个正确答案
+     * @private
+     */
+    async _uploadSingleCorrectAnswer(question) {
+        try {
+            const { questionId, questionType, content, options, correctAnswer } = question;
+
+            // 使用数据转换器转换格式
+            const platformData = {
+                questionId: questionId,
+                questionContent: content,
+                questionType: questionType,
+                options: options,
+                answer: correctAnswer
+            };
+
+            const uploadData = DataTransformer.platformToDatabase(platformData);
+
+            if (!uploadData) {
+                throw new Error('数据转换失败');
+            }
+
+            // 设置额外信息
+            uploadData.confidence = 1.0; // 经过平台验证，置信度最高
+            uploadData.source = 'platform_verified'; // 来源：平台批改验证
+
+            // 验证数据完整性
+            if (!DataTransformer.validateDatabaseFormat(uploadData)) {
+                throw new Error('数据格式验证失败');
+            }
+
+            // 清理数据
+            const cleanData = DataTransformer.cleanData(uploadData);
+
+            // 上传到云端
+            const success = await APIClient.upload(cleanData);
+
+            if (success) {
+                logger.debug(`  💾 ${questionId} - 已上传`);
+            }
+
+            return success;
+        } catch (err) {
+            logger.debug(`  ❌ ${question.questionId} - 上传失败:`, err.message);
+            return false;
+        }
+    }
+
+    /**
+     * 上传正确答案到云端（纠错成功后）
+     * @private
+     * @param {object} error - 错题对象
+     * @param {string} correctAnswer - 纠错成功的正确答案
+     */
+    async _uploadCorrectAnswer(error, correctAnswer) {
+        try {
+            logger.debug(`[Correction] 准备上传正确答案: ${error.questionId}`);
+
+            // 使用数据转换器转换格式
+            const uploadData = DataTransformer.extractCorrectAnswerFromCorrectionResult(
+                error,
+                correctAnswer
+            );
+
+            if (!uploadData) {
+                throw new Error('数据转换失败');
+            }
+
+            // 验证数据完整性
+            if (!DataTransformer.validateDatabaseFormat(uploadData)) {
+                throw new Error('数据格式验证失败');
+            }
+
+            // 清理数据
+            const cleanData = DataTransformer.cleanData(uploadData);
+
+            logger.debug(`[Correction] 上传数据:`, cleanData);
+
+            // 上传到云端
+            const success = await APIClient.upload(cleanData);
+
+            if (success) {
+                logger.info(`  💾 题目 ${error.questionId} - 正确答案已上传到云端`);
+                logger.info(`     答案: ${correctAnswer}`);
+            }
+
+            return success;
+        } catch (err) {
+            logger.error(`[Correction] 上传正确答案失败: ${error.questionId}`, err);
+            throw err;
+        }
     }
 
     /**

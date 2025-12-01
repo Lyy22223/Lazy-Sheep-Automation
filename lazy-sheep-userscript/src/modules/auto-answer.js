@@ -8,6 +8,7 @@ import { logger, sleep } from '../core/utils.js';
 import { DELAY_CONFIG } from '../core/constants.js';
 import PlatformManager from '../platforms/manager.js';
 import APIClient from '../network/api-client.js';
+import DataTransformer from '../network/data-transformer.js';
 import RequestQueue from '../network/request-queue.js';
 import AnswerFiller from './answer-filler.js';
 
@@ -239,44 +240,44 @@ class AutoAnswer {
         try {
             const { id, content, type, options } = question;
 
-            // 构建上传数据
-            const uploadData = {
+            // 使用数据转换器标准化数据
+            const platformData = {
                 questionId: id,
                 questionContent: content,
-                type: type,
-                answer: answer,
-                platform: 'czbk',
-                confidence: 1.0, // 用户确认的答案，置信度最高
+                questionType: type,
+                options: options,
+                answer: answer
             };
 
-            // 添加选项（如果有）
-            if (options && options.length > 0) {
-                uploadData.options = options;
+            // 转换为数据库格式
+            const uploadData = DataTransformer.platformToDatabase(platformData);
+            
+            if (!uploadData) {
+                throw new Error('数据格式转换失败');
             }
 
-            // 添加答案文本（用于展示）
-            if (options && options.length > 0) {
-                // 解析答案字母到文本
-                const answerLetters = Array.isArray(answer) 
-                    ? answer 
-                    : String(answer).split(/[,，]/).map(a => a.trim()).filter(Boolean);
-                
-                const answerTexts = answerLetters.map(letter => {
-                    const index = letter.charCodeAt(0) - 65; // A=0, B=1, ...
-                    return options[index] || letter;
-                });
-                
-                uploadData.answerText = answerTexts.join(', ');
-            } else {
-                uploadData.answerText = String(answer);
+            // 设置额外信息
+            uploadData.confidence = 1.0; // 用户确认的答案，置信度最高
+            uploadData.source = 'auto_answer'; // 来源：自动答题
+
+            // 验证数据完整性
+            if (!DataTransformer.validateDatabaseFormat(uploadData)) {
+                throw new Error('数据格式验证失败');
             }
+
+            // 清理数据
+            const cleanData = DataTransformer.cleanData(uploadData);
+
+            logger.debug(`[AutoAnswer] 上传数据:`, cleanData);
 
             // 发送上传请求（异步，不阻塞）
-            const success = await APIClient.upload(uploadData);
+            const success = await APIClient.upload(cleanData);
             
             if (success) {
                 logger.debug(`[AutoAnswer] 答案已上传: ${id}`);
             }
+
+            return success;
         } catch (error) {
             // 上传失败不影响答题流程
             logger.debug('[AutoAnswer] 上传异常:', error);
