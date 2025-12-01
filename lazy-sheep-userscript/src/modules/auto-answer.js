@@ -201,6 +201,11 @@ class AutoAnswer {
                 if (warning) {
                     logger.warn(`[AutoAnswer] ${warning}`);
                 }
+
+                // 3. 上传答案到数据库（异步，不阻塞答题）
+                this._uploadAnswer(question, answer).catch(error => {
+                    logger.warn('[AutoAnswer] 上传答案失败（不影响答题）:', error);
+                });
             } else {
                 this.progress.failed++;
 
@@ -223,6 +228,59 @@ class AutoAnswer {
             });
 
             logger.error(`[AutoAnswer] 答题异常: ${id}`, error);
+        }
+    }
+
+    /**
+     * 上传答案到数据库
+     * @private
+     */
+    async _uploadAnswer(question, answer) {
+        try {
+            const { id, content, type, options } = question;
+
+            // 构建上传数据
+            const uploadData = {
+                questionId: id,
+                questionContent: content,
+                type: type,
+                answer: answer,
+                platform: 'czbk',
+                confidence: 1.0, // 用户确认的答案，置信度最高
+            };
+
+            // 添加选项（如果有）
+            if (options && options.length > 0) {
+                uploadData.options = options;
+            }
+
+            // 添加答案文本（用于展示）
+            if (options && options.length > 0) {
+                // 解析答案字母到文本
+                const answerLetters = Array.isArray(answer) 
+                    ? answer 
+                    : String(answer).split(/[,，]/).map(a => a.trim()).filter(Boolean);
+                
+                const answerTexts = answerLetters.map(letter => {
+                    const index = letter.charCodeAt(0) - 65; // A=0, B=1, ...
+                    return options[index] || letter;
+                });
+                
+                uploadData.answerText = answerTexts.join(', ');
+            } else {
+                uploadData.answerText = String(answer);
+            }
+
+            // 发送上传请求（异步，不阻塞）
+            const success = await APIClient.upload(uploadData);
+            
+            if (success) {
+                logger.debug(`[AutoAnswer] 答案已上传: ${id}`);
+            }
+        } catch (error) {
+            // 上传失败不影响答题流程
+            logger.debug('[AutoAnswer] 上传异常:', error);
+            throw error;
         }
     }
 
