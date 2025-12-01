@@ -162,13 +162,18 @@ class AutoAnswer {
 
             // 1. 查询答案
             let answer = null;
+            
+            logger.info(`[AutoAnswer] 查询题目 - ID: ${id}, Type: ${type}, Content: ${content?.substring(0, 50)}...`);
 
             // 优先使用云端API
             try {
                 const response = await APIClient.search(id, content, type);
+                logger.debug(`[AutoAnswer] 云端API响应:`, response);
                 if (response && response.answer) {
                     answer = response.answer;
-                    logger.debug(`[AutoAnswer] 云端查询成功: ${answer}`);
+                    logger.info(`[AutoAnswer] ✓ 云端查询成功: ${answer}`);
+                } else {
+                    logger.info(`[AutoAnswer] 云端无此题 (response: ${JSON.stringify(response)})`);
                 }
             } catch (error) {
                 logger.warn('[AutoAnswer] 云端查询失败:', error);
@@ -176,16 +181,19 @@ class AutoAnswer {
 
             // 降级使用AI
             if (!answer && options.useAI) {
+                logger.info(`[AutoAnswer] 尝试AI答题...`);
                 try {
                     answer = await APIClient.aiAnswer(
                         content,
                         type,
                         question.options || []
                     );
-                    logger.debug(`[AutoAnswer] AI答题成功: ${answer}`);
+                    logger.info(`[AutoAnswer] ✓ AI答题成功: ${answer}`);
                 } catch (error) {
                     logger.warn('[AutoAnswer] AI答题失败:', error);
                 }
+            } else if (!answer) {
+                logger.info(`[AutoAnswer] AI未启用 (useAI: ${options.useAI})`);
             }
 
             if (!answer) {

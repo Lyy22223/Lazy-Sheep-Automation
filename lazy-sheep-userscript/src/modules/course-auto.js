@@ -203,7 +203,12 @@ export default class CourseAuto {
             // 调用自动答题
             logger.info('[Course] 开始自动答题...');
             try {
-                await AutoAnswer.start();
+                await AutoAnswer.start({
+                    useAI: true,  // 刷课时启用AI（云端+AI）
+                    skipAnswered: false,  // 不跳过已答题目
+                    useQueue: true,
+                    delay: 1000
+                });
                 this.stats.exercisesCompleted++;
                 logger.info(`[Course] 习题完成 (${this.stats.exercisesCompleted}个)`);
             } catch (e) {
