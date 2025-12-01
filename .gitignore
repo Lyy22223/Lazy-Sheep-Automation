@@ -1,0 +1,113 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 环境变量文件（保留.example模板文件）
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.docker
+*.env
+!.env.example
+!.env.*.example
+
+# 日志文件
+*.log
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# Cursor配置（可选，如果需要共享配置可以移除）
+.cursor/
+
+# 测试文件
+test_*.py
+*_test.py
+*_test.js
+
+# 工具脚本
+tools/
+backend/extract_answers.py
+backend/EXTRACT_ANSWERS.md
+backend/get_api_key.py
+backend/test_*.py
+
+# HTML测试文件
+html/
+
+# 文档目录（本地开发用）
+docs/
+
+# 测试数据文件
+data/*.json
+data/*.txt
+!data/index.json
+
+# 配置文档（开发用）
+backend/DEEPSEEK_CONFIG.md
+
+# 临时文件
+*.tmp
+*.bak
+*.cache
+
+# 构建产物
+dist/
+build/
+*.map
+
+# 备份文件
+*.backup
+*.old
+
+# 压缩文件（可选，根据项目需要）
+# *.zip
+# *.tar.gz
+# *.rar

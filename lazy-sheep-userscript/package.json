@@ -1,0 +1,56 @@
+{
+    "name": "lazy-sheep-automation-platform",
+    "version": "2.0.0",
+    "description": "懒羊羊自动化平台 - 在线学习平台自动化助手",
+    "main": "src/main.js",
+    "scripts": {
+        "dev": "webpack --config config/webpack.config.js --mode development --watch",
+        "build": "webpack --config config/webpack.config.js --mode production",
+        "build:obfuscate": "cross-env OBFUSCATE=true webpack --config config/webpack.config.js --mode production",
+        "serve": "node serve-local.js",
+        "dev:serve": "concurrently \"npm run dev\" \"npm run serve\"",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "lint": "eslint src/**/*.js",
+        "format": "prettier --write src/**/*.js"
+    },
+    "keywords": [
+        "auto-answer",
+        "userscript",
+        "tampermonkey",
+        "multi-platform",
+        "懒羊羊"
+    ],
+    "author": "懒羊羊",
+    "license": "MIT",
+    "devDependencies": {
+        "@babel/core": "^7.23.0",
+        "@babel/plugin-proposal-nullish-coalescing-operator": "^7.18.6",
+        "@babel/plugin-proposal-optional-chaining": "^7.21.0",
+        "@babel/preset-env": "^7.23.0",
+        "babel-loader": "^9.1.3",
+        "concurrently": "^9.2.1",
+        "core-js": "^3.33.0",
+        "css-loader": "^6.8.1",
+        "eslint": "^8.50.0",
+        "jest": "^29.7.0",
+        "jest-environment-jsdom": "^29.7.0",
+        "prettier": "^3.0.3",
+        "style-loader": "^3.3.3",
+        "vue-loader": "^17.3.0",
+        "webpack": "^5.88.0",
+        "webpack-cli": "^5.1.4",
+        "webpack-obfuscator": "^3.0.0"
+    },
+    "dependencies": {
+        "ant-design-vue": "^4.0.0",
+        "vue": "^3.3.0"
+    },
+    "jest": {
+        "testEnvironment": "jsdom",
+        "collectCoverageFrom": [
+            "src/**/*.js",
+            "!src/main.js"
+        ]
+    }
+}

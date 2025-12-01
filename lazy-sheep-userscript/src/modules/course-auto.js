@@ -1,0 +1,524 @@
+/**
+ * 刷课管理器
+ * 负责自动刷课的整体流程控制
+ */
+
+import { logger } from '../core/utils.js';
+import Config from '../core/config.js';
+import VideoHandler from './video-handler.js';
+import AutoAnswer from './auto-answer.js';
+import APIClient from '../network/api-client.js';
+import DataTransformer from '../network/data-transformer.js';
+import PlatformManager from '../platforms/manager.js';
+
+export default class CourseAuto {
+    constructor() {
+        this.isRunning = false;
+        this.config = {
+            playbackSpeed: Config.get('course.playbackSpeed', 2.0),
+            instantFinish: Config.get('course.instantFinish', false),
+            autoNext: Config.get('course.autoNext', true),
+            skipCompleted: Config.get('course.skipCompleted', false) // 新增：是否跳过已完成的课程
+        };
+        this.stats = {
+            videosCompleted: 0,
+            exercisesCompleted: 0,
+            totalTime: 0
+        };
+    }
+
+    /**
+     * 检测页面类型
+     */
+    detectPageType() {
+        const hasVideo = !!document.querySelector('video');
+        const hasQuestion = !!document.querySelector('.answer-questions-box, .questions-lists-box, .question-info-box');
+
+        if (hasVideo && !hasQuestion) return 'video';
+        if (hasQuestion) return 'exercise';
+        return 'unknown';
+    }
+
+    /**
+     * 检测是否为习题页面
+     */
+    static isExercisePage() {
+        return !!document.querySelector('.answer-questions-box, .questions-lists-box, .question-info-box');
+    }
+
+    /**
+     * 获取当前课程点元素
+     */
+    getCurrentPointItem() {
+        const selector = '.point-item-box .point-name-box.playing-status, ' +
+            '.point-item-box .point-topic-box.playing-status, ' +
+            '.point-item-box.active, .point-item-box.current';
+        return document.querySelector(selector)?.closest('.point-item-box');
+    }
+
+    /**
+     * 获取下一个课程点
+     */
+    getNextPointItem() {
+        let currentPoint = this.getCurrentPointItem();
+        if (!currentPoint) {
+            // 如果找不到当前节点，从第一个开始
+            return document.querySelector('.point-item-box');
+        }
+
+        let nextPoint = currentPoint.nextElementSibling;
+        
+        // 查找下一个课程节点
+        while (nextPoint) {
+            if (nextPoint.classList.contains('point-item-box')) {
+                // 如果配置为跳过已完成的课程，则检查完成状态
+                if (this.config.skipCompleted && this.isPointCompleted(nextPoint)) {
+                    logger.debug('[Course] 跳过已完成的课程');
+                    nextPoint = nextPoint.nextElementSibling;
+                    continue;
+                }
+                return nextPoint;
+            }
+            nextPoint = nextPoint.nextElementSibling;
+        }
+
+        return null;
+    }
+
+    /**
+     * 检查课程点是否已完成
+     */
+    isPointCompleted(pointItem) {
+        if (!pointItem) return true;
+
+        // 检查视频进度
+        const videoProgress = pointItem.querySelector('.point-name-box .point-progress-box')?.textContent.trim();
+        const videoCompleted = videoProgress === '100%' || 
+                              pointItem.querySelector('.point-name-box')?.textContent.includes('100%') || 
+                              pointItem.classList.contains('completed');
+
+        // 检查习题进度
+        const exerciseBox = pointItem.querySelector('.point-topic-box');
+        const exerciseCompleted = !exerciseBox || 
+                                 exerciseBox.querySelector('.point-progress-box')?.textContent.trim() === '100%' || 
+                                 exerciseBox.textContent.includes('100%');
+
+        return videoCompleted && exerciseCompleted;
+    }
+
+    /**
+     * 点击课程点
+     */
+    async clickPointItem(pointItem, isExercise = false) {
+        try {
+            const targetBox = isExercise 
+                ? pointItem.querySelector('.point-topic-box') 
+                : pointItem.querySelector('.point-name-box');
+            
+            if (targetBox) {
+                targetBox.click();
+                logger.debug(`[Course] 点击${isExercise ? '习题' : '视频'}节点`);
+                await this.sleep(1500);
+                return true;
+            }
+            return false;
+        } catch (e) {
+            logger.error('[Course] 点击节点失败:', e);
+            return false;
+        }
+    }
+
+    /**
+     * 处理视频页面
+     */
+    async handleVideoPage() {
+        try {
+            logger.info('[Course] 处理视频页面...');
+
+            // 如果配置为跳过已完成的课程，检查当前课程是否已完成
+            if (this.config.skipCompleted) {
+                const currentPoint = this.getCurrentPointItem();
+                if (currentPoint && this.isPointCompleted(currentPoint)) {
+                    logger.info('[Course] 当前视频已完成，跳过');
+                    return await this.navigateToNext();
+                }
+            }
+
+            const startTime = Date.now();
+
+            // 根据配置选择处理方式
+            const success = this.config.instantFinish 
+                ? await VideoHandler.instantFinish() 
+                : await VideoHandler.play(this.config.playbackSpeed);
+
+            if (success) {
+                this.stats.videosCompleted++;
+                this.stats.totalTime += (Date.now() - startTime) / 1000;
+                logger.info(`[Course] 视频完成 (${this.stats.videosCompleted}个)`);
+
+                // 调用平台完成接口（如果存在）
+                if (typeof window.finishWxCourse === 'function') {
+                    try {
+                        window.finishWxCourse();
+                        logger.debug('[Course] 调用平台完成接口');
+                    } catch (e) {
+                        logger.warn('[Course] 平台完成接口调用失败:', e);
+                    }
+                }
+
+                await this.sleep(2000);
+
+                // 检查是否有习题
+                const updatedPoint = this.getCurrentPointItem();
+                if (updatedPoint) {
+                    const exerciseBox = updatedPoint.querySelector('.point-topic-box');
+                    if (exerciseBox && exerciseBox.querySelector('.point-progress-box')?.textContent.trim() !== '100%') {
+                        logger.info('[Course] 检测到习题，准备处理...');
+                        await this.clickPointItem(updatedPoint, true);
+                        await this.sleep(2000);
+                        return await this.handleExercisePage();
+                    }
+                }
+
+                return await this.navigateToNext();
+            }
+
+            return false;
+        } catch (e) {
+            logger.error('[Course] 处理视频失败:', e);
+            return false;
+        }
+    }
+
+    /**
+     * 处理习题页面（支持分页习题）
+     */
+    async handleExercisePage() {
+        try {
+            logger.info('[Course] 处理习题页面...');
+            await this.sleep(1000);
+
+            if (!document.querySelector('.question-item, .question-info-box')) {
+                logger.warn('[Course] 未找到题目，跳过');
+                return await this.navigateToNext();
+            }
+
+            let questionCount = 0;
+            let maxQuestions = 50; // 防止死循环
+            
+            // 获取平台适配器
+            const platform = PlatformManager.getCurrentAdapter();
+            
+            // 循环处理每道题
+            while (questionCount < maxQuestions) {
+                questionCount++;
+                logger.info(`[Course] 答第 ${questionCount} 题...`);
+                
+                // 1. 提取当前题目信息（用于后续上传）
+                let currentQuestion = null;
+                try {
+                    const questions = platform.extractAllQuestions();
+                    if (questions && questions.length > 0) {
+                        currentQuestion = questions[0]; // 当前显示的题目
+                    }
+                } catch (e) {
+                    logger.warn('[Course] 提取题目信息失败:', e);
+                }
+                
+                // 2. 答当前显示的题目
+                try {
+                    await AutoAnswer.start({
+                        useAI: true,  // 刷课时启用AI（云端+AI）
+                        skipAnswered: false,  // 不跳过已答题目
+                        useQueue: true,
+                        delay: 1000
+                    });
+                } catch (e) {
+                    logger.error('[Course] 自动答题失败:', e);
+                }
+                
+                await this.sleep(1500);
+                
+                // 3. 点击"提交"按钮
+                const submitBtn = this.findButton('提交');
+                if (submitBtn && submitBtn.offsetParent !== null) {
+                    logger.info('[Course] 提交当前题目');
+                    submitBtn.click();
+                    await this.sleep(2000); // 等待提交响应
+                } else {
+                    logger.warn('[Course] 未找到提交按钮');
+                    break;
+                }
+                
+                // 4. 提取并上传正确答案
+                await this.extractAndUploadCorrectAnswer(currentQuestion);
+                
+                // 5. 等待并检查是否出现"下一题"按钮
+                let hasNextQuestion = false;
+                for (let i = 0; i < 5; i++) {
+                    await this.sleep(500);
+                    const nextBtn = this.findButton('下一题');
+                    if (nextBtn && nextBtn.offsetParent !== null) {
+                        logger.info('[Course] 发现"下一题"按钮，继续答题');
+                        nextBtn.click();
+                        await this.sleep(1500);
+                        hasNextQuestion = true;
+                        break;
+                    }
+                }
+                
+                if (!hasNextQuestion) {
+                    logger.info('[Course] 所有题目已完成（未出现"下一题"按钮）');
+                    break;
+                }
+            }
+            
+            this.stats.exercisesCompleted++;
+            logger.info(`[Course] 习题完成 (${this.stats.exercisesCompleted}个，共${questionCount}道题)`);
+
+            await this.sleep(2000);
+
+            // 查找最终提交按钮（如果有的话）
+            const finalSubmitBtn = this.findButton('提交');
+            if (finalSubmitBtn && finalSubmitBtn.offsetParent !== null) {
+                logger.info('[Course] 点击最终提交按钮');
+                finalSubmitBtn.click();
+                await this.sleep(2000);
+            } else {
+                logger.info('[Course] 无最终提交按钮，习题已完成');
+            }
+
+            return await this.navigateToNext();
+        } catch (e) {
+            logger.error('[Course] 处理习题失败:', e);
+            return false;
+        }
+    }
+
+    /**
+     * 导航到下一个课程点
+     */
+    async navigateToNext() {
+        try {
+            if (!this.config.autoNext) {
+                logger.info('[Course] 自动跳转已禁用，停止');
+                return false;
+            }
+
+            logger.info('[Course] 准备进入下一个课程点...');
+            const nextPoint = this.getNextPointItem();
+
+            if (nextPoint) {
+                await this.clickPointItem(nextPoint, false);
+                await this.sleep(2000);
+
+                // 等待页面加载
+                for (let i = 0; i < 10; i++) {
+                    const pageType = this.detectPageType();
+                    if (pageType !== 'unknown') break;
+                    await this.sleep(500);
+                }
+
+                return true; // 继续主循环
+            } else {
+                logger.info('[Course] 🎉 所有课程已完成！');
+                return false; // 结束主循环
+            }
+        } catch (e) {
+            logger.error('[Course] 导航失败:', e);
+            return false;
+        }
+    }
+
+    /**
+     * 开始刷课
+     */
+    async start() {
+        if (this.isRunning) {
+            logger.warn('[Course] 刷课已在运行中');
+            return;
+        }
+
+        this.isRunning = true;
+        this.stats = {
+            videosCompleted: 0,
+            exercisesCompleted: 0,
+            totalTime: 0
+        };
+
+        logger.info('[Course] 🚀 开始自动刷课...');
+        const startTime = Date.now();
+
+        try {
+            while (this.isRunning) {
+                const pageType = this.detectPageType();
+                logger.debug(`[Course] 当前页面类型: ${pageType}`);
+
+                let shouldContinue = false;
+
+                switch (pageType) {
+                    case 'video':
+                        shouldContinue = await this.handleVideoPage();
+                        break;
+                    case 'exercise':
+                        shouldContinue = await this.handleExercisePage();
+                        break;
+                    default:
+                        logger.warn('[Course] 未识别的页面类型，尝试跳转下一个');
+                        shouldContinue = await this.navigateToNext();
+                }
+
+                if (!shouldContinue) {
+                    logger.info('[Course] 刷课流程结束');
+                    break;
+                }
+
+                await this.sleep(1000);
+            }
+        } catch (e) {
+            logger.error('[Course] 刷课异常:', e);
+        } finally {
+            this.isRunning = false;
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            logger.info(`[Course] ✅ 刷课完成！视频: ${this.stats.videosCompleted}, 习题: ${this.stats.exercisesCompleted}, 耗时: ${totalTime}秒`);
+        }
+    }
+
+    /**
+     * 停止刷课
+     */
+    stop() {
+        if (!this.isRunning) {
+            logger.warn('[Course] 刷课未在运行中');
+            return;
+        }
+
+        this.isRunning = false;
+        logger.info('[Course] 🛑 已停止刷课');
+    }
+
+    /**
+     * 更新配置
+     */
+    updateConfig(config) {
+        this.config = { ...this.config, ...config };
+        
+        // 保存到配置
+        if (config.playbackSpeed !== undefined) {
+            Config.set('course.playbackSpeed', config.playbackSpeed);
+        }
+        if (config.instantFinish !== undefined) {
+            Config.set('course.instantFinish', config.instantFinish);
+        }
+        if (config.autoNext !== undefined) {
+            Config.set('course.autoNext', config.autoNext);
+        }
+        if (config.skipCompleted !== undefined) {
+            Config.set('course.skipCompleted', config.skipCompleted);
+        }
+
+        Config.save();
+        logger.debug('[Course] 配置已更新:', this.config);
+    }
+
+    /**
+     * 获取统计信息
+     */
+    getStats() {
+        return { ...this.stats, isRunning: this.isRunning };
+    }
+
+    /**
+     * 查找按钮
+     */
+    findButton(text) {
+        const buttons = document.querySelectorAll('button, a, .el-button, .ant-btn');
+        for (const btn of buttons) {
+            if (btn.textContent.includes(text)) {
+                return btn;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 延时函数
+     */
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * 提取并上传正确答案
+     */
+    async extractAndUploadCorrectAnswer(question) {
+        try {
+            if (!question) {
+                logger.debug('[Course] 无题目信息，跳过上传');
+                return;
+            }
+
+            // 查找正确答案元素
+            const correctTextEl = document.querySelector('.correct-text, .submit-result-box .correct-text');
+            if (!correctTextEl) {
+                logger.debug('[Course] 未找到正确答案提示（可能答对了）');
+                return;
+            }
+
+            const correctText = correctTextEl.textContent.trim();
+            logger.info(`[Course] 发现正确答案: ${correctText}`);
+
+            // 解析正确答案 "正确答案是【C】" → "C"
+            const match = correctText.match(/[【\[]([A-Z])[】\]]/);
+            if (!match) {
+                logger.warn('[Course] 无法解析正确答案格式:', correctText);
+                return;
+            }
+
+            const correctAnswer = match[1];
+            logger.info(`[Course] 提取到正确答案: ${correctAnswer}`);
+
+            // 准备上传数据
+            const platformData = {
+                questionId: question.id || 'unknown',
+                questionContent: question.content,
+                questionType: question.type,
+                options: question.options,
+                answer: correctAnswer
+            };
+
+            // 转换为数据库格式
+            const uploadData = DataTransformer.platformToDatabase(platformData);
+            
+            if (!uploadData) {
+                logger.warn('[Course] 数据格式转换失败');
+                return;
+            }
+
+            // 设置额外信息
+            uploadData.confidence = 1.0; // 官方答案，置信度最高
+            uploadData.source = 'course_auto'; // 来源：刷课自动答题
+
+            // 验证数据完整性
+            if (!DataTransformer.validateDatabaseFormat(uploadData)) {
+                logger.warn('[Course] 数据格式验证失败');
+                return;
+            }
+
+            // 清理数据
+            const cleanData = DataTransformer.cleanData(uploadData);
+
+            // 上传到云端
+            const success = await APIClient.upload(cleanData);
+            
+            if (success) {
+                logger.info(`[Course] ✓ 正确答案已上传到题库: ${correctAnswer}`);
+            } else {
+                logger.warn('[Course] 答案上传失败');
+            }
+
+        } catch (error) {
+            logger.warn('[Course] 提取/上传正确答案异常:', error);
+        }
+    }
+}
