@@ -21,7 +21,7 @@
 
 ### 3. 后端部署
 - [ ] 在服务器 `39.104.15.174` 上部署后端
-- [ ] 配置 MySQL 数据库
+- [ ] 配置 PostgreSQL 数据库
 - [ ] 配置 Redis 缓存
 - [ ] 创建测试API Key
 - [ ] 测试API连接
@@ -191,13 +191,7 @@ ssh root@39.104.15.174
 
 ### 2. 上传代码
 
-**方式一：Git克隆**
-```bash
-cd /opt
-git clone https://github.com/your-repo/lazy-sheep-backend.git
-```
-
-**方式二：SCP上传**
+**使用 SCP 上传**
 ```bash
 # 在本地执行
 scp -r lazy-sheep-backend root@39.104.15.174:/opt/
@@ -207,7 +201,7 @@ scp -r lazy-sheep-backend root@39.104.15.174:/opt/
 
 参考 `lazy-sheep-backend/DEPLOYMENT.md` 完整部署：
 
-1. 安装依赖（Python, MySQL, Redis）
+1. 安装依赖（Python, PostgreSQL, Redis）
 2. 配置环境变量
 3. 初始化数据库
 4. 创建测试API Key
@@ -241,23 +235,13 @@ curl -X POST http://39.104.15.174:8000/api/search \
 
 在 `RELEASE_README.md` 中更新：
 - Greasy Fork 安装链接
-- GitHub 仓库链接
-- 问题反馈链接
 
-### 2. 创建发布说明
-
-在 GitHub 创建 Release：
-1. 打标签: `v2.0.0`
-2. 标题: `v2.0.0 - 重大更新：全新架构重构`
-3. 说明: 复制 CHANGELOG.md 中的内容
-4. 附件: 上传 `dist/czbk-answer.user.js`
-
-### 3. 监控和反馈
+### 2. 监控和反馈
 
 - 关注 Greasy Fork 的用户反馈
-- 监控 GitHub Issues
 - 查看服务器日志
 - 收集用户使用数据
+- 及时回复用户评论
 
 ---
 
@@ -319,17 +303,11 @@ LIMIT 30;
 - [ ] ✅ 截图已准备
 - [ ] ✅ 功能已测试
 - [ ] ⬜ 发布到 Greasy Fork
-- [ ] ⬜ 创建 GitHub Release
 - [ ] ⬜ 更新文档链接
 
 ---
 
-## 🔗 相关链接
-
-**开发环境**：
-- 项目仓库: https://github.com/your-repo/lazy-sheep
-- 前端代码: `/lazy-sheep-userscript`
-- 后端代码: `/lazy-sheep-backend`
+## 🔗 相关信息
 
 **生产环境**：
 - 后端API: http://39.104.15.174:8000
@@ -358,8 +336,8 @@ LIMIT 30;
 
 ### 用户支持
 - 在 Greasy Fork 回复用户评论
-- 在 GitHub Issues 处理问题反馈
-- 提供 QQ群/Discord 等交流渠道
+- 提供 QQ群等交流渠道
+- 及时处理用户反馈
 
 ---
 
