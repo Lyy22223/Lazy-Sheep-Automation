@@ -1,10 +1,10 @@
-﻿"""
+"""
 搜索服务
 """
 import hashlib
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from api.models import Question
+from api.models import Question, Answer
 from api.utils.text_matcher import fuzzy_match
 from loguru import logger
 
@@ -76,7 +76,7 @@ class SearchService:
         question_data: dict,
         session: AsyncSession
     ) -> bool:
-        """保存题目到数据库"""
+        """保存题目到数据库（支持多答案存储）"""
         try:
             # 计算hash
             content = question_data.get("questionContent", "")
@@ -87,15 +87,47 @@ class SearchService:
             result = await session.execute(stmt)
             existing = result.scalar_one_or_none()
             
+            answer_text = question_data.get("answer")
+            answer_desc = question_data.get("answerText")
+            source = question_data.get("source", "ai")
+            confidence = question_data.get("confidence", 0.8)
+            
             if existing:
-                # 更新答案（如果置信度更高）
-                new_confidence = question_data.get("confidence", 0.8)
-                if new_confidence > existing.confidence:
-                    existing.answer = question_data.get("answer")
-                    existing.answer_text = question_data.get("answerText")
-                    existing.confidence = new_confidence
+                # 题目已存在，添加新答案到answers表
+                logger.info(f"题目已存在: {existing.question_id}，添加新答案")
+                
+                # 检查是否已有相同来源的答案
+                stmt = select(Answer).where(
+                    Answer.question_id == existing.id,
+                    Answer.answer == answer_text,
+                    Answer.source == source
+                )
+                result = await session.execute(stmt)
+                existing_answer = result.scalar_one_or_none()
+                
+                if existing_answer:
+                    # 答案已存在，更新置信度
+                    if confidence > existing_answer.confidence:
+                        existing_answer.confidence = confidence
+                        await session.commit()
+                        logger.info(f"更新答案置信度: {existing.question_id}")
+                else:
+                    # 添加新答案
+                    new_answer = Answer(
+                        question_id=existing.id,
+                        answer=answer_text,
+                        answer_text=answer_desc,
+                        source=source,
+                        contributor=source,
+                        confidence=confidence
+                    )
+                    session.add(new_answer)
                     await session.commit()
-                    logger.info(f"更新题目: {existing.question_id}")
+                    logger.info(f"添加新答案: {existing.question_id} from {source}")
+                    
+                    # 自动评估最佳答案
+                    await SearchService._evaluate_best_answer(session, existing.id)
+                
                 return True
             
             # 创建新题目
@@ -104,21 +136,81 @@ class SearchService:
                 content=content,
                 content_hash=content_hash,
                 type=question_data.get("type"),
-                answer=question_data.get("answer"),
-                answer_text=question_data.get("answerText"),
+                answer=answer_text,  # 保留用于向后兼容
+                answer_text=answer_desc,
                 options=question_data.get("options"),
                 platform=question_data.get("platform", "czbk"),
-                source=question_data.get("source", "ai"),
-                confidence=question_data.get("confidence", 0.8),
+                source=source,
+                confidence=confidence,
                 verified=question_data.get("verified", False)
             )
             
             session.add(question)
+            await session.flush()  # 获取question.id
+            
+            # 同时添加到answers表
+            answer = Answer(
+                question_id=question.id,
+                answer=answer_text,
+                answer_text=answer_desc,
+                source=source,
+                contributor=source,
+                confidence=confidence,
+                is_accepted=True  # 第一个答案默认为最佳答案
+            )
+            session.add(answer)
+            
             await session.commit()
-            logger.info(f"保存新题目: {question.question_id}")
+            logger.info(f"保存新题目和答案: {question.question_id}")
             return True
             
         except Exception as e:
             logger.error(f"保存题目失败: {e}")
             await session.rollback()
             return False
+    
+    @staticmethod
+    async def _evaluate_best_answer(session: AsyncSession, question_id: int):
+        """评估并更新最佳答案"""
+        try:
+            # 获取所有答案
+            stmt = select(Answer).where(Answer.question_id == question_id)
+            result = await session.execute(stmt)
+            answers = result.scalars().all()
+            
+            if not answers:
+                return
+            
+            # 先清除所有is_accepted标记
+            for ans in answers:
+                ans.is_accepted = False
+            
+            # 按优先级选择最佳答案
+            def answer_priority(ans: Answer) -> tuple:
+                return (
+                    ans.verified,
+                    ans.source == "platform_verified",
+                    ans.vote_count,
+                    ans.confidence
+                )
+            
+            best_answer = max(answers, key=answer_priority)
+            best_answer.is_accepted = True
+            
+            # 更新Question表（向后兼容）
+            stmt = select(Question).where(Question.id == question_id)
+            result = await session.execute(stmt)
+            question = result.scalar_one_or_none()
+            
+            if question:
+                question.answer = best_answer.answer
+                question.answer_text = best_answer.answer_text
+                question.source = best_answer.source
+                question.confidence = best_answer.confidence
+            
+            await session.commit()
+            logger.info(f"更新最佳答案: Question {question_id}")
+            
+        except Exception as e:
+            logger.error(f"评估最佳答案失败: {e}")
+            await session.rollback()

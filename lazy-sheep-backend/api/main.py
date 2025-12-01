@@ -1,4 +1,4 @@
-﻿"""
+"""
 懒羊羊题库API - 主入口
 """
 from fastapi import FastAPI, Request, HTTPException
@@ -10,7 +10,7 @@ import sys
 
 from api.config import get_settings
 from api.database import init_db
-from api.routes import search, ai, upload
+from api.routes import search, ai, upload, answers, quality
 
 settings = get_settings()
 
@@ -82,6 +82,8 @@ async def verify_api_key(request: Request, call_next):
 app.include_router(search.router)
 app.include_router(ai.router)
 app.include_router(upload.router)
+app.include_router(answers.router)
+app.include_router(quality.router)
 
 
 @app.get("/")
