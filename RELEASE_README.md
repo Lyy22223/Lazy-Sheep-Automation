@@ -2,9 +2,8 @@
 
 > 传智播客（CZBK）在线学习平台自动答题助手 | 支持自动答题、自动刷课、智能纠错
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Tampermonkey](https://img.shields.io/badge/Tampermonkey-v4.0%2B-brightgreen.svg)](https://www.tampermonkey.net/)
-[![Version](https://img.shields.io/badge/version-2.0.0-orange.svg)](https://github.com)
+[![Version](https://img.shields.io/badge/version-2.0.0-orange.svg)]()
 
 ---
 
@@ -54,11 +53,7 @@
 
 ### 2️⃣ 安装脚本
 
-**方式一：通过 Greasy Fork 安装（推荐）**
-
-👉 [点击安装懒羊羊自动化平台](https://greasyfork.org/scripts/your-script-id)
-
-**方式二：手动安装**
+**安装方式**
 
 1. 下载脚本文件 `czbk-answer.user.js`
 2. 打开 Tampermonkey 管理面板
@@ -283,77 +278,8 @@
 
 ---
 
-## 🔧 后端部署（可选）
+## ⚠️ 免责声明
 
-如果你想搭建私有后端服务，请参考以下步骤：
-
-### 环境要求
-
-- Python 3.10+
-- MySQL 8.0+
-- Redis 6.0+
-- DeepSeek API Key
-
-### 快速部署
-
-```bash
-# 1. 克隆后端代码
-git clone https://github.com/your-repo/lazy-sheep-backend.git
-cd lazy-sheep-backend
-
-# 2. 安装依赖
-pip install -r requirements.txt
-
-# 3. 配置环境变量
-cp .env.example .env
-vim .env  # 修改数据库、Redis、API Key 等配置
-
-# 4. 初始化数据库
-python init_db.py
-
-# 5. 启动服务
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-### 配置脚本连接
-
-部署完成后，在脚本设置中修改：
-- **API地址**: `http://你的服务器IP:8000`
-- **API密钥**: 你设置的密钥
-
----
-
-## 📝 更新日志
-
-### v2.0.0 (2024-12-01)
-
-**🎉 重大更新**
-- ✨ 全新架构重构，性能提升 300%
-- ✨ 新增自动刷课功能（视频+习题）
-- ✨ 支持分页习题流程
-- ✨ 新增智能纠错功能
-- ✨ 优化答案上传机制
-- ✨ 现代化 UI 设计
-- ✨ 支持 DeepSeek-R1 深度推理模型
-- 🐛 修复题型识别错误
-- 🐛 修复 API 422 错误
-- 🐛 修复多选题答案格式问题
-- 🔧 优化后端搜索逻辑（ID 优先）
-- 🔧 改进防作弊绕过
-
-### v1.x (历史版本)
-
-- 基础答题功能
-- 云端题库查询
-- AI 答题（DeepSeek-V3）
-
----
-
-## 📜 开源协议
-
-本项目采用 [MIT License](LICENSE) 开源协议。
-
-**⚠️ 免责声明**:
 - 本工具仅供学习交流使用
 - 请勿用于违反平台规定的行为
 - 使用本工具造成的任何后果由用户自行承担
@@ -361,45 +287,19 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 ---
 
-## 🤝 贡献与支持
-
-### 反馈问题
+## 📞 技术支持
 
 遇到问题或有建议？请通过以下方式反馈：
 
-- 📧 Email: your-email@example.com
-- 🐛 [GitHub Issues](https://github.com/your-repo/issues)
-- 💬 QQ群: 123456789
-
-### 贡献代码
-
-欢迎提交 Pull Request：
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
-### 支持项目
-
-如果这个项目对你有帮助，请给个 ⭐ Star 支持一下！
+- 📧 Email: support@example.com
+- 💬 QQ群: 待更新
 
 ---
-
-## 📌 相关链接
-
-- **项目主页**: https://github.com/your-repo/lazy-sheep
-- **脚本安装**: https://greasyfork.org/scripts/your-script-id
-- **使用文档**: https://docs.your-site.com
-- **问题反馈**: https://github.com/your-repo/issues
 
 ---
 
 <div align="center">
 
 Made with ❤️ by Lazy Sheep Team
-
-Copyright © 2024 All Rights Reserved
 
 </div>

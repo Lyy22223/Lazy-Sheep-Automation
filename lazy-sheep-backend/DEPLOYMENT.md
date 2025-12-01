@@ -9,7 +9,7 @@
 ### 系统要求
 - **操作系统**: Linux (Ubuntu 20.04+ / CentOS 7+) 或 Windows Server
 - **Python**: 3.10 或更高版本
-- **数据库**: MySQL 8.0+
+- **数据库**: PostgreSQL 13+
 - **缓存**: Redis 6.0+
 - **内存**: 最低 2GB，推荐 4GB+
 - **磁盘**: 最低 10GB 可用空间
@@ -31,39 +31,38 @@ sudo apt update && sudo apt upgrade -y
 # 安装 Python 3.10+
 sudo apt install python3.10 python3.10-venv python3-pip -y
 
-# 安装 MySQL
-sudo apt install mysql-server -y
+# 安装 PostgreSQL
+sudo apt install postgresql postgresql-contrib -y
 
 # 安装 Redis
 sudo apt install redis-server -y
 
 # 启动服务
-sudo systemctl start mysql
+sudo systemctl start postgresql
 sudo systemctl start redis-server
-sudo systemctl enable mysql
+sudo systemctl enable postgresql
 sudo systemctl enable redis-server
 ```
 
-### 2. 配置 MySQL
+### 2. 配置 PostgreSQL
 
 ```bash
-# 登录 MySQL
-sudo mysql
+# 切换到 postgres 用户
+sudo -u postgres psql
 
 # 创建数据库和用户
-CREATE DATABASE lazy_sheep DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'lazy_sheep'@'localhost' IDENTIFIED BY 'your_password';
-GRANT ALL PRIVILEGES ON lazy_sheep.* TO 'lazy_sheep'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
+CREATE DATABASE lazy_sheep;
+CREATE USER lazy_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE lazy_sheep TO lazy_user;
+\q
 ```
 
 ### 3. 克隆并配置项目
 
 ```bash
-# 克隆代码
+# 上传代码到服务器（使用SCP或其他方式）
 cd /opt
-git clone https://github.com/your-repo/lazy-sheep-backend.git
+# 将后端代码上传到此目录
 cd lazy-sheep-backend
 
 # 创建虚拟环境
@@ -89,7 +88,7 @@ vim .env
 
 ```bash
 # 数据库配置
-DATABASE_URL=mysql+aiomysql://lazy_sheep:your_password@localhost:3306/lazy_sheep
+DATABASE_URL=postgresql+asyncpg://lazy_user:your_password@localhost:5432/lazy_sheep
 
 # Redis配置
 REDIS_HOST=localhost
@@ -149,7 +148,7 @@ sudo vim /etc/systemd/system/lazy-sheep.service
 ```ini
 [Unit]
 Description=Lazy Sheep Backend Service
-After=network.target mysql.service redis.service
+After=network.target postgresql.service redis.service
 
 [Service]
 Type=simple
@@ -273,17 +272,19 @@ sudo ufw enable
 sudo ufw status
 ```
 
-### 3. 配置 MySQL 安全
+### 3. 配置 PostgreSQL 安全
 
 ```bash
-# 运行安全脚本
-sudo mysql_secure_installation
+# 编辑 PostgreSQL 配置
+sudo vim /etc/postgresql/13/main/pg_hba.conf
 
-# 设置：
-# - 设置 root 密码
-# - 删除匿名用户
-# - 禁止 root 远程登录
-# - 删除测试数据库
+# 确保有以下配置：
+# local   all             all                                     peer
+# host    all             all             127.0.0.1/32            md5
+# host    all             all             ::1/128                 md5
+
+# 重启 PostgreSQL
+sudo systemctl restart postgresql
 ```
 
 ### 4. 配置 SSL 证书（可选）
@@ -328,8 +329,8 @@ sudo apt install htop -y
 # 查看系统资源
 htop
 
-# 查看 MySQL 状态
-mysql -u root -p -e "SHOW STATUS;"
+# 查看 PostgreSQL 状态
+sudo -u postgres psql -c "SELECT version();"
 
 # 查看 Redis 状态
 redis-cli INFO
@@ -345,11 +346,11 @@ vim /opt/scripts/backup.sh
 写入以下内容：
 ```bash
 #!/bin/bash
-BACKUP_DIR="/backup/mysql"
+BACKUP_DIR="/backup/postgres"
 DATE=$(date +%Y%m%d_%H%M%S)
 mkdir -p $BACKUP_DIR
 
-mysqldump -u lazy_sheep -p'your_password' lazy_sheep > $BACKUP_DIR/lazy_sheep_$DATE.sql
+sudo -u postgres pg_dump lazy_sheep > $BACKUP_DIR/lazy_sheep_$DATE.sql
 gzip $BACKUP_DIR/lazy_sheep_$DATE.sql
 
 # 保留最近7天的备份
@@ -391,13 +392,13 @@ mysql -u lazy_sheep -p lazy_sheep
 **A**: 检查：
 ```bash
 # 测试连接
-mysql -u lazy_sheep -p -h localhost lazy_sheep
+sudo -u postgres psql lazy_sheep
 
-# 检查 MySQL 是否运行
-sudo systemctl status mysql
+# 检查 PostgreSQL 是否运行
+sudo systemctl status postgresql
 
-# 查看 MySQL 日志
-sudo tail -f /var/log/mysql/error.log
+# 查看 PostgreSQL 日志
+sudo tail -f /var/log/postgresql/postgresql-13-main.log
 
 # 检查 .env 配置是否正确
 cat /opt/lazy-sheep-backend/.env | grep DATABASE_URL
@@ -440,12 +441,12 @@ sudo journalctl -u lazy-sheep | grep deepseek
 # 编辑 /etc/systemd/system/lazy-sheep.service
 ExecStart=/opt/lazy-sheep-backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --workers 8
 
-# 优化 MySQL
-# 编辑 /etc/mysql/mysql.conf.d/mysqld.cnf
-[mysqld]
-innodb_buffer_pool_size = 1G
-innodb_log_file_size = 256M
-max_connections = 500
+# 优化 PostgreSQL
+# 编辑 /etc/postgresql/13/main/postgresql.conf
+shared_buffers = 256MB
+effective_cache_size = 1GB
+maintenance_work_mem = 128MB
+max_connections = 200
 
 # 优化 Redis
 # 编辑 /etc/redis/redis.conf
@@ -453,7 +454,7 @@ maxmemory 512mb
 maxmemory-policy allkeys-lru
 
 # 重启服务
-sudo systemctl restart lazy-sheep mysql redis-server
+sudo systemctl restart lazy-sheep postgresql redis-server
 ```
 
 ---
@@ -494,14 +495,13 @@ services:
       - redis
 
   db:
-    image: mysql:8.0
+    image: postgres:15-alpine
     environment:
-      - MYSQL_ROOT_PASSWORD=rootpassword
-      - MYSQL_DATABASE=lazy_sheep
-      - MYSQL_USER=lazy_sheep
-      - MYSQL_PASSWORD=password
+      - POSTGRES_DB=lazy_sheep
+      - POSTGRES_USER=lazy_user
+      - POSTGRES_PASSWORD=password
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:6-alpine
@@ -509,7 +509,7 @@ services:
       - redis_data:/data
 
 volumes:
-  mysql_data:
+  postgres_data:
   redis_data:
 ```
 
@@ -542,10 +542,8 @@ docker-compose up -d
 遇到部署问题？
 
 - 📧 Email: support@example.com
-- 🐛 GitHub: https://github.com/your-repo/issues
-- 📚 文档: https://docs.your-site.com
+- 💬 QQ群: 待更新
 
 ---
 
-**版本**: 2.0.0  
-**更新时间**: 2024-12-01
+**版本**: 2.0.0
