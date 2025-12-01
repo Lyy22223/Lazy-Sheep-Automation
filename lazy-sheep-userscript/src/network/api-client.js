@@ -26,13 +26,13 @@ class APIClient {
      * @param {string} questionText - 题目内容
      * @returns {Promise<object>} 响应数据
      */
-    async search(questionId, questionText, questionType = '0') {
+    async search(questionId, questionText, questionType = '0', options = []) {
         const url = `${this.baseUrl}${API_ENDPOINTS.SEARCH}`;
 
         const data = {
-            questionId,
             questionContent: questionText,
             type: questionType,
+            options: options,
             platform: 'czbk'
         };
 
@@ -62,9 +62,9 @@ class APIClient {
 
         const data = {
             questions: questions.map(q => ({
-                questionId: q.id,
                 questionContent: q.text,
-                type: q.type || '0'
+                type: q.type || '0',
+                options: q.options || []
             })),
             platform: 'czbk'
         };
