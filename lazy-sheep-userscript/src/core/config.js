@@ -10,8 +10,8 @@ class Config {
         this.defaultConfig = {
             // API配置
             api: {
-                baseUrl: 'http://localhost:8000',
-                key: '',  // API密钥
+                baseUrl: 'http://39.104.15.174:8000',
+                key: 'sk-test-lazy-sheep-dev-2024',  // 测试API密钥
                 searchEndpoint: '/api/search',
                 aiEndpoint: '/api/ai/answer',
                 keyInfoEndpoint: '/api/key/info',
