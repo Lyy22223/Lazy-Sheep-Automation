@@ -45,15 +45,29 @@ class AnswerFiller {
             // 查找所有radio
             const radios = questionItem.querySelectorAll(SELECTORS.radio);
 
-            // 找到value匹配的radio
-            const targetRadio = Array.from(radios).find(r => r.value === letter);
-
-            if (!targetRadio) {
-                logger.warn(`[单选题] 未找到选项: ${letter}`);
+            if (radios.length === 0) {
+                logger.warn(`[单选题] 未找到radio选项`);
                 return false;
             }
 
-            // 点击radio，Vue会自动更新stuAnswer为"A"
+            // 尝试两种匹配方式
+            let targetRadio = null;
+            
+            // 方式1: 匹配字母值 (Ant Design Vue格式: value="A")
+            targetRadio = Array.from(radios).find(r => r.value === letter);
+            
+            // 方式2: 匹配索引值 (Element UI格式: value="0", "1", "2"...)
+            if (!targetRadio) {
+                const index = letter.charCodeAt(0) - 65; // A=0, B=1, C=2...
+                targetRadio = Array.from(radios).find(r => r.value === String(index));
+            }
+
+            if (!targetRadio) {
+                logger.warn(`[单选题] 未找到选项: ${letter} (尝试了字母值和索引值)`);
+                return false;
+            }
+
+            // 点击radio，Vue会自动更新stuAnswer
             targetRadio.click();
 
             await sleep(DELAY_CONFIG.CLICK);
