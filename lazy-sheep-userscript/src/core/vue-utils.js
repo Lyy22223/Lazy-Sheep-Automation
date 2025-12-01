@@ -196,6 +196,7 @@ class VueUtils {
      * 🔍 实际测试发现:
      * - 多选题格式: ['null', 'A', 'B'] (数组)
      * - 第一个元素是字符串 'null'
+     * - 简答题删除后: "<br />" (HTML标记)
      * 
      * @param {Element} questionItem - 题目元素
      * @returns {boolean} 是否已答
@@ -214,7 +215,32 @@ class VueUtils {
 
         // 其他类型: 检查字符串trim后是否有内容
         const strAnswer = String(answer).trim();
-        return strAnswer.length > 0 && strAnswer !== 'null';
+        
+        // 排除空值、'null'字符串、HTML空标记
+        if (strAnswer.length === 0 || strAnswer === 'null') {
+            return false;
+        }
+        
+        // 排除常见的空HTML标记（简答题删除后会留下）
+        const emptyHtmlPatterns = [
+            '<br />',
+            '<br/>',
+            '<br>',
+            '<p></p>',
+            '<p><br /></p>',
+            '<p><br/></p>',
+            '<p><br></p>',
+            '<div></div>',
+            '&nbsp;'
+        ];
+        
+        if (emptyHtmlPatterns.includes(strAnswer)) {
+            return false;
+        }
+        
+        // 移除所有HTML标记后检查是否还有内容
+        const textOnly = strAnswer.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim();
+        return textOnly.length > 0;
     }
 
     /**
