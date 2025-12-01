@@ -133,6 +133,14 @@ class APIClient {
         const url = `${this.baseUrl}${API_ENDPOINTS.UPLOAD}`;
 
         try {
+            // 输出上传数据供调试
+            logger.debug('[API] 上传数据:', JSON.stringify({
+                questionId: question.questionId,
+                type: question.type,
+                answer: question.answer,
+                options: question.options
+            }));
+            
             await this._request({
                 url,
                 method: 'POST',
@@ -143,6 +151,7 @@ class APIClient {
             return true;
         } catch (error) {
             logger.error('[API] 上传失败:', error);
+            logger.error('[API] 失败数据:', JSON.stringify(question));
             return false;
         }
     }

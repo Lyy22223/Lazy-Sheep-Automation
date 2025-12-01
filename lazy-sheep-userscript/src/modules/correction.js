@@ -20,11 +20,14 @@ import SubmitHandler from './submit-handler.js';
 class CorrectionManager {
     constructor() {
         this.correcting = false;
-        this.maxRetries = 3;  // 最多纠错3次
-        this.correctionHistory = [];
-        this.latestErrors = [];  // 最新的错题列表
-        this.latestCorrectCount = 0;  // 最新的正确题目数量
-        this.latestTotalCount = 0;  // 最新的总题目数量
+        
+        // 统计信息（最近一次批改结果）
+        this.latestCorrectCount = 0;
+        this.latestWrongCount = 0;
+        this.latestTotalCount = 0;
+        
+        // 已上传题目ID集合（避免重复上传）
+        this.uploadedQuestions = new Set();
     }
 
     /**
@@ -293,13 +296,7 @@ class CorrectionManager {
                 return;
             }
 
-            logger.debug(`[Correction] 解析 ${name} 题型, 共 ${questions.length} 道`);
-            logger.debug(`[Correction] ${name} 项目信息:`, {
-                totalScore: typeObject.totalScore,
-                qNum: typeObject.qNum,
-                yesSubject: typeObject.yesSubject,
-                wrongSubject: typeObject.wrongSubject
-            });
+            // logger.debug(`[Correction] 解析 ${name} 题型, 共 ${questions.length} 道`);
             
             questions.forEach(q => {
                 // 查找对应的DOM元素（使用 id 字段）
@@ -359,12 +356,9 @@ class CorrectionManager {
                         ...questionData,
                         wrongAnswer: questionData.stuAnswer
                     });
-                    
-                    logger.debug(`[Correction] 找到错题: ${questionId} (类型${q.questionType})`);
                 } else if (q.correct === true) {
                     // 正确的题目 - 准备上传
                     correctQuestions.push(questionData);
-                    logger.debug(`[Correction] 找到正确题目: ${questionId} (类型${q.questionType})`);
                 }
             });
         });
@@ -661,32 +655,47 @@ class CorrectionManager {
      */
     async _uploadCorrectQuestions(correctQuestions) {
         try {
-            logger.info(`[Correction] 🚀 开始批量上传 ${correctQuestions.length} 道正确答案...`);
+            // 过滤已上传的题目
+            const newQuestions = correctQuestions.filter(q => !this.uploadedQuestions.has(q.questionId));
+            
+            if (newQuestions.length === 0) {
+                logger.info('[Correction] 所有题目均已上传过，跳过');
+                return;
+            }
+            
+            const skippedCount = correctQuestions.length - newQuestions.length;
+            if (skippedCount > 0) {
+                logger.info(`[Correction] 跳过${skippedCount}道已上传题目`);
+            }
+            
+            logger.info(`[Correction] 🚀 开始批量上传 ${newQuestions.length} 道正确答案...`);
             
             let successCount = 0;
             let failedCount = 0;
 
             // 并发上传，控制并发数为5
             const batchSize = 5;
-            for (let i = 0; i < correctQuestions.length; i += batchSize) {
-                const batch = correctQuestions.slice(i, i + batchSize);
+            for (let i = 0; i < newQuestions.length; i += batchSize) {
+                const batch = newQuestions.slice(i, i + batchSize);
                 
                 const results = await Promise.allSettled(
                     batch.map(q => this._uploadSingleCorrectAnswer(q))
                 );
 
                 results.forEach((result, index) => {
+                    const question = batch[index];
                     if (result.status === 'fulfilled' && result.value) {
                         successCount++;
+                        // 记录已上传
+                        this.uploadedQuestions.add(question.questionId);
                     } else {
                         failedCount++;
-                        const question = batch[index];
                         logger.warn(`  ⚠️ 上传失败: ${question.questionId}`);
                     }
                 });
 
                 // 避免请求过快
-                if (i + batchSize < correctQuestions.length) {
+                if (i + batchSize < newQuestions.length) {
                     await sleep(200);
                 }
             }

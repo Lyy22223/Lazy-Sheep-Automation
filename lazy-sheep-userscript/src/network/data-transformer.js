@@ -129,47 +129,52 @@ class DataTransformer {
     }
 
     /**
-     * 标准化选项格式
+     * 标准化选项格式（转换为后端需要的字典数组格式）
      * @private
      */
     _normalizeOptions(options, questionOptionList) {
+        let optionsArray = [];
+        
         // 优先使用questionOptionList
         if (questionOptionList && Array.isArray(questionOptionList)) {
-            return questionOptionList.map((opt, index) => {
+            optionsArray = questionOptionList.map((opt, index) => {
                 if (typeof opt === 'string') {
                     return opt;
                 }
                 if (opt.text) {
-                    return opt.text;
+                    // 移除"A、"这样的前缀
+                    return opt.text.replace(/^[A-Z]、/, '');
                 }
                 if (opt.content) {
-                    return opt.content;
+                    return opt.content.replace(/^[A-Z]、/, '');
                 }
                 return String(opt);
             });
         }
-
         // 处理options字段
-        if (options) {
+        else if (options) {
             // 如果是JSON字符串，解析它
             if (typeof options === 'string') {
                 try {
                     const parsed = JSON.parse(options);
                     if (Array.isArray(parsed)) {
-                        return parsed;
+                        optionsArray = parsed;
                     }
                 } catch (e) {
                     logger.warn('[DataTransformer] 解析options失败，当作普通字符串处理');
                 }
             }
-
             // 如果已经是数组
-            if (Array.isArray(options)) {
-                return options;
+            else if (Array.isArray(options)) {
+                optionsArray = options;
             }
         }
 
-        return [];
+        // 转换为后端需要的字典格式：[{key: "A", text: "..."}, ...]
+        return optionsArray.map((text, index) => ({
+            key: String.fromCharCode(65 + index),  // A, B, C, D...
+            text: typeof text === 'string' ? text : String(text)
+        }));
     }
 
     /**
@@ -202,7 +207,9 @@ class DataTransformer {
             
             const answerTexts = answerLetters.map(letter => {
                 const index = letter.charCodeAt(0) - 65; // A=0, B=1, ...
-                return options[index] || letter;
+                const option = options[index];
+                // 如果是字典格式，取text字段；否则直接使用
+                return option ? (option.text || option) : letter;
             });
             
             return answerTexts.join('；');
