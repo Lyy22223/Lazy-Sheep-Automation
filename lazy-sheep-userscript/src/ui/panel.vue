@@ -97,19 +97,21 @@
 
           <!-- 状态卡片 -->
           <a-card title="答题状态" size="small">
-            <!-- 实时进度 -->
-            <div v-if="isAnswering && realtimeProgress.current > 0" style="margin-bottom: 16px; padding: 12px; background: #f0f5ff; border-radius: 4px; border-left: 3px solid #1890ff;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 13px; font-weight: 500; color: #1890ff;">
-                  🎯 正在答题: {{ realtimeProgress.current }} / {{ realtimeProgress.total }}
-                </span>
-                <a-tag color="processing">进行中</a-tag>
-              </div>
-              <div v-if="realtimeProgress.currentQuestionId" style="font-size: 12px; color: #666; margin-bottom: 4px;">
-                <span style="font-weight: 500;">当前题目:</span> {{ realtimeProgress.currentQuestionId.substring(0, 8) }}...
-              </div>
-              <div v-if="realtimeProgress.currentContent" style="font-size: 12px; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                {{ realtimeProgress.currentContent }}
+            <!-- 实时进度（固定高度避免跳动） -->
+            <div v-if="isAnswering" style="margin-bottom: 16px; min-height: 80px;">
+              <div v-if="realtimeProgress.current > 0" style="padding: 12px; background: #f0f5ff; border-radius: 4px; border-left: 3px solid #1890ff;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 13px; font-weight: 500; color: #1890ff;">
+                    🎯 正在答题: {{ realtimeProgress.current }} / {{ realtimeProgress.total }}
+                  </span>
+                  <a-tag color="processing">进行中</a-tag>
+                </div>
+                <div v-if="realtimeProgress.currentQuestionId" style="font-size: 12px; color: #666; margin-bottom: 4px;">
+                  <span style="font-weight: 500;">当前题目:</span> {{ realtimeProgress.currentQuestionId.substring(0, 8) }}...
+                </div>
+                <div v-if="realtimeProgress.currentContent" style="font-size: 12px; color: #999; line-height: 1.4; max-height: 34px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                  {{ realtimeProgress.currentContent }}
+                </div>
               </div>
             </div>
 

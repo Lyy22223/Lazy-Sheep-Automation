@@ -122,7 +122,9 @@
           <div class="content-section">
             <div class="section-label">我的答案</div>
             <div class="section-value">
-              <a-tag color="error">{{ error.wrongAnswer || '未答' }}</a-tag>
+              <div style="color: #ff4d4f; font-size: 13px; line-height: 1.6; word-break: break-word;">
+                {{ formatAnswer(error.wrongAnswer) }}
+              </div>
             </div>
           </div>
           
@@ -135,8 +137,9 @@
                   v-for="(ans, idx) in error.attemptedAnswers" 
                   :key="idx"
                   color="orange"
+                  style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;"
                 >
-                  {{idx + 1}}. {{ ans }}
+                  {{idx + 1}}. {{ formatAnswer(ans, 50) }}
                 </a-tag>
               </div>
               <span v-else style="color: #bfbfbf; font-size: 12px;">暂无尝试</span>
@@ -279,6 +282,21 @@ const getStatusColor = (status) => {
     failed: 'error'
   };
   return colors[status] || 'default';
+};
+
+// 清理并截断答案显示
+const formatAnswer = (answer, maxLength = 100) => {
+  if (!answer) return '未答';
+  
+  // 移除HTML标签
+  const cleaned = answer.replace(/<[^>]+>/g, '').trim();
+  
+  // 截断过长内容
+  if (cleaned.length > maxLength) {
+    return cleaned.substring(0, maxLength) + '...';
+  }
+  
+  return cleaned;
 };
 
 // 获取状态文本
