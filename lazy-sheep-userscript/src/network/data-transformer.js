@@ -41,7 +41,12 @@ class DataTransformer {
             const dbOptions = this._normalizeOptions(options, questionOptionList);
 
             // 5. 答案（优先级：correctAnswer > answer）
-            const dbAnswer = correctAnswer || answer || '';
+            let dbAnswer = correctAnswer || answer || '';
+            
+            // 清理答案中的【】符号（仅填空题需要，简答题不需要）
+            if (dbType === '3') {
+                dbAnswer = this._cleanBrackets(dbAnswer);
+            }
 
             // 6. 答案文本（根据选项解析）
             const dbAnswerText = this._generateAnswerText(dbAnswer, dbOptions, dbType);
@@ -109,6 +114,18 @@ class DataTransformer {
             return '0'; // 默认单选
         }
         return String(questionType);
+    }
+
+    /**
+     * 清理答案中的【】符号
+     * @private
+     */
+    _cleanBrackets(answer) {
+        if (!answer || typeof answer !== 'string') {
+            return answer;
+        }
+        // 移除中文方括号【】
+        return answer.replace(/【|】/g, '').trim();
     }
 
     /**

@@ -160,19 +160,38 @@ class CorrectionManager {
                 throw new Error('无法获取作业ID');
             }
 
-            logger.info(`[Correction] 调用批改接口, busyworkId: ${workId}`);
+            // 判断页面类型，选择对应的接口
+            const isSubmitted = this._isSubmittedPage();
+            let url, method;
+            
+            if (isSubmitted) {
+                // 已提交页面：使用 findStudentBusywork 接口（GET）
+                url = `https://stu.ityxb.com/back/bxg/my/busywork/findStudentBusywork?busyworkId=${workId}&t=${Date.now()}`;
+                method = 'GET';
+                logger.info(`[Correction] 调用已提交结果接口, busyworkId: ${workId}`);
+            } else {
+                // 答题中/已保存页面：使用 startBusywork 接口（POST）
+                url = 'https://stu.ityxb.com/back/bxg/my/busywork/startBusywork';
+                method = 'POST';
+                logger.info(`[Correction] 调用批改接口, busyworkId: ${workId}`);
+            }
 
-            // 调用平台批改接口
-            const url = 'https://stu.ityxb.com/back/bxg/my/busywork/startBusywork';
-            const response = await fetch(url, {
-                method: 'POST',
+            // 调用平台接口
+            const fetchOptions = {
+                method: method,
                 credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
                     'Accept': 'application/json, text/plain, */*'
-                },
-                body: `busyworkId=${workId}`
-            });
+                }
+            };
+            
+            // POST请求需要body
+            if (method === 'POST') {
+                fetchOptions.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+                fetchOptions.body = `busyworkId=${workId}`;
+            }
+            
+            const response = await fetch(url, fetchOptions);
 
             if (!response.ok) {
                 throw new Error(`批改接口返回错误: ${response.status}`);
@@ -230,8 +249,17 @@ class CorrectionManager {
      * @private
      */
     _getWorkIdFromURL() {
-        const match = window.location.pathname.match(/\/writePaper\/busywork\/(\w+)/);
-        return match ? match[1] : null;
+        // 支持两种页面：writePaper（答题中/已保存）和 lookPaper（已提交查看）
+        const match = window.location.pathname.match(/\/(writePaper|lookPaper)\/busywork\/(\w+)/);
+        return match ? match[2] : null;
+    }
+    
+    /**
+     * 判断是否为已提交页面
+     * @private
+     */
+    _isSubmittedPage() {
+        return window.location.pathname.includes('/lookPaper/busywork/');
     }
 
     /**
@@ -290,13 +318,32 @@ class CorrectionManager {
                     options = q.questionOptionList.map(opt => opt.text);
                 }
                 
+                // 获取正确答案（可能是answer或rightAnswer字段）
+                const correctAnswer = q.answer || q.rightAnswer || q.stuAnswer || '';
+                
+                // 第一个题目输出调试信息
+                if (correctQuestions.length === 0 && errors.length === 0) {
+                    logger.info(`[Correction] 题目字段示例 (${name}):`, JSON.stringify({
+                        id: q.id,
+                        questionType: q.questionType,
+                        answer: q.answer,
+                        rightAnswer: q.rightAnswer,
+                        stuAnswer: q.stuAnswer,
+                        correct: q.correct,
+                        correctAnswer: correctAnswer,
+                        options: options,
+                        hasOptions: q.options,
+                        hasQuestionOptionList: q.questionOptionList
+                    }, null, 2));
+                }
+                
                 const questionData = {
                     questionId: questionId,
                     questionType: q.questionType || type,
                     content: q.questionContentText || q.questionContent || '',
                     options: options,
                     stuAnswer: q.stuAnswer || '',
-                    correctAnswer: q.answer || '',
+                    correctAnswer: correctAnswer,
                     element: element,
                     correct: q.correct
                 };
