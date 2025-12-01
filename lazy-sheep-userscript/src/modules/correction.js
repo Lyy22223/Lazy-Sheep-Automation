@@ -16,6 +16,7 @@ import APIClient from '../network/api-client.js';
 import DataTransformer from '../network/data-transformer.js';
 import AnswerFiller from './answer-filler.js';
 import SubmitHandler from './submit-handler.js';
+import ErrorTracker from '../core/error-tracker.js';
 
 class CorrectionManager {
     constructor() {
@@ -352,9 +353,17 @@ class CorrectionManager {
                         logger.warn(`[Correction] 未找到题目元素: ${questionId}`);
                     }
                     
-                    errors.push({
+                    const errorData = {
                         ...questionData,
                         wrongAnswer: questionData.stuAnswer
+                    };
+                    errors.push(errorData);
+                    
+                    // 添加到错题跟踪器
+                    ErrorTracker.add({
+                        ...errorData,
+                        status: 'pending',
+                        attemptedAnswers: []
                     });
                 } else if (q.correct === true) {
                     // 正确的题目 - 准备上传

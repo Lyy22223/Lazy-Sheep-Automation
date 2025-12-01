@@ -202,15 +202,19 @@ class VueUtils {
      */
     isAnswered(questionItem) {
         const answer = this.getAnswer(questionItem);
-        if (!answer) return false;
+        
+        // null/undefined 认为未答
+        if (answer === null || answer === undefined) return false;
 
         // 🔍 实际测试: 多选题是数组格式，第一个元素是 'null'
         if (Array.isArray(answer)) {
-            return answer.some(v => v !== 'null' && v !== null && v !== '');
+            // 空数组或所有元素都为空/null
+            return answer.length > 0 && answer.some(v => v !== 'null' && v !== null && v !== '' && String(v).trim() !== '');
         }
 
-        // 其他类型: 检查字符串是否有内容
-        return String(answer).trim().length > 0;
+        // 其他类型: 检查字符串trim后是否有内容
+        const strAnswer = String(answer).trim();
+        return strAnswer.length > 0 && strAnswer !== 'null';
     }
 
     /**
