@@ -7,6 +7,9 @@ import { logger } from '../core/utils.js';
 import Config from '../core/config.js';
 import VideoHandler from './video-handler.js';
 import AutoAnswer from './auto-answer.js';
+import APIClient from '../network/api-client.js';
+import DataTransformer from '../network/data-transformer.js';
+import PlatformManager from '../platforms/manager.js';
 
 export default class CourseAuto {
     constructor() {
@@ -188,7 +191,7 @@ export default class CourseAuto {
     }
 
     /**
-     * 处理习题页面
+     * 处理习题页面（支持分页习题）
      */
     async handleExercisePage() {
         try {
@@ -200,29 +203,89 @@ export default class CourseAuto {
                 return await this.navigateToNext();
             }
 
-            // 调用自动答题
-            logger.info('[Course] 开始自动答题...');
-            try {
-                await AutoAnswer.start({
-                    useAI: true,  // 刷课时启用AI（云端+AI）
-                    skipAnswered: false,  // 不跳过已答题目
-                    useQueue: true,
-                    delay: 1000
-                });
-                this.stats.exercisesCompleted++;
-                logger.info(`[Course] 习题完成 (${this.stats.exercisesCompleted}个)`);
-            } catch (e) {
-                logger.error('[Course] 自动答题失败:', e);
+            let questionCount = 0;
+            let maxQuestions = 50; // 防止死循环
+            
+            // 获取平台适配器
+            const platform = PlatformManager.getCurrentAdapter();
+            
+            // 循环处理每道题
+            while (questionCount < maxQuestions) {
+                questionCount++;
+                logger.info(`[Course] 答第 ${questionCount} 题...`);
+                
+                // 1. 提取当前题目信息（用于后续上传）
+                let currentQuestion = null;
+                try {
+                    const questions = platform.extractAllQuestions();
+                    if (questions && questions.length > 0) {
+                        currentQuestion = questions[0]; // 当前显示的题目
+                    }
+                } catch (e) {
+                    logger.warn('[Course] 提取题目信息失败:', e);
+                }
+                
+                // 2. 答当前显示的题目
+                try {
+                    await AutoAnswer.start({
+                        useAI: true,  // 刷课时启用AI（云端+AI）
+                        skipAnswered: false,  // 不跳过已答题目
+                        useQueue: true,
+                        delay: 1000
+                    });
+                } catch (e) {
+                    logger.error('[Course] 自动答题失败:', e);
+                }
+                
+                await this.sleep(1500);
+                
+                // 3. 点击"提交"按钮
+                const submitBtn = this.findButton('提交');
+                if (submitBtn && submitBtn.offsetParent !== null) {
+                    logger.info('[Course] 提交当前题目');
+                    submitBtn.click();
+                    await this.sleep(2000); // 等待提交响应
+                } else {
+                    logger.warn('[Course] 未找到提交按钮');
+                    break;
+                }
+                
+                // 4. 提取并上传正确答案
+                await this.extractAndUploadCorrectAnswer(currentQuestion);
+                
+                // 5. 等待并检查是否出现"下一题"按钮
+                let hasNextQuestion = false;
+                for (let i = 0; i < 5; i++) {
+                    await this.sleep(500);
+                    const nextBtn = this.findButton('下一题');
+                    if (nextBtn && nextBtn.offsetParent !== null) {
+                        logger.info('[Course] 发现"下一题"按钮，继续答题');
+                        nextBtn.click();
+                        await this.sleep(1500);
+                        hasNextQuestion = true;
+                        break;
+                    }
+                }
+                
+                if (!hasNextQuestion) {
+                    logger.info('[Course] 所有题目已完成（未出现"下一题"按钮）');
+                    break;
+                }
             }
+            
+            this.stats.exercisesCompleted++;
+            logger.info(`[Course] 习题完成 (${this.stats.exercisesCompleted}个，共${questionCount}道题)`);
 
             await this.sleep(2000);
 
-            // 查找并点击提交按钮
-            const submitBtn = this.findButton('提交');
-            if (submitBtn) {
-                submitBtn.click();
-                logger.info('[Course] 已提交习题');
+            // 查找最终提交按钮（如果有的话）
+            const finalSubmitBtn = this.findButton('提交');
+            if (finalSubmitBtn && finalSubmitBtn.offsetParent !== null) {
+                logger.info('[Course] 点击最终提交按钮');
+                finalSubmitBtn.click();
                 await this.sleep(2000);
+            } else {
+                logger.info('[Course] 无最终提交按钮，习题已完成');
             }
 
             return await this.navigateToNext();
@@ -383,5 +446,79 @@ export default class CourseAuto {
      */
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * 提取并上传正确答案
+     */
+    async extractAndUploadCorrectAnswer(question) {
+        try {
+            if (!question) {
+                logger.debug('[Course] 无题目信息，跳过上传');
+                return;
+            }
+
+            // 查找正确答案元素
+            const correctTextEl = document.querySelector('.correct-text, .submit-result-box .correct-text');
+            if (!correctTextEl) {
+                logger.debug('[Course] 未找到正确答案提示（可能答对了）');
+                return;
+            }
+
+            const correctText = correctTextEl.textContent.trim();
+            logger.info(`[Course] 发现正确答案: ${correctText}`);
+
+            // 解析正确答案 "正确答案是【C】" → "C"
+            const match = correctText.match(/[【\[]([A-Z])[】\]]/);
+            if (!match) {
+                logger.warn('[Course] 无法解析正确答案格式:', correctText);
+                return;
+            }
+
+            const correctAnswer = match[1];
+            logger.info(`[Course] 提取到正确答案: ${correctAnswer}`);
+
+            // 准备上传数据
+            const platformData = {
+                questionId: question.id || 'unknown',
+                questionContent: question.content,
+                questionType: question.type,
+                options: question.options,
+                answer: correctAnswer
+            };
+
+            // 转换为数据库格式
+            const uploadData = DataTransformer.platformToDatabase(platformData);
+            
+            if (!uploadData) {
+                logger.warn('[Course] 数据格式转换失败');
+                return;
+            }
+
+            // 设置额外信息
+            uploadData.confidence = 1.0; // 官方答案，置信度最高
+            uploadData.source = 'course_auto'; // 来源：刷课自动答题
+
+            // 验证数据完整性
+            if (!DataTransformer.validateDatabaseFormat(uploadData)) {
+                logger.warn('[Course] 数据格式验证失败');
+                return;
+            }
+
+            // 清理数据
+            const cleanData = DataTransformer.cleanData(uploadData);
+
+            // 上传到云端
+            const success = await APIClient.upload(cleanData);
+            
+            if (success) {
+                logger.info(`[Course] ✓ 正确答案已上传到题库: ${correctAnswer}`);
+            } else {
+                logger.warn('[Course] 答案上传失败');
+            }
+
+        } catch (error) {
+            logger.warn('[Course] 提取/上传正确答案异常:', error);
+        }
     }
 }

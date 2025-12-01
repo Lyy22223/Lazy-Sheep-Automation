@@ -14,19 +14,43 @@
       <ThunderboltOutlined />
     </template>
     
-    <a-float-button @click="handleAutoAnswer" :tooltip="'自动答题'">
+    <!-- 自动答题 -->
+    <a-float-button 
+      @click="handleAutoAnswer" 
+      tooltip="自动答题"
+      :badge="{ dot: realtimeProgress.current > 0 && realtimeProgress.current < realtimeProgress.total }"
+    >
       <template #icon>
         <PlayCircleOutlined />
       </template>
     </a-float-button>
     
-    <a-float-button @click="handleSubmit" :tooltip="'提交作业'">
+    <!-- 自动刷课 -->
+    <a-float-button 
+      @click="handleAutoCourse" 
+      tooltip="自动刷课"
+      :badge="{ dot: isCourseRunning }"
+    >
+      <template #icon>
+        <RocketOutlined />
+      </template>
+    </a-float-button>
+    
+    <!-- 提交作业 -->
+    <a-float-button 
+      @click="handleSubmit" 
+      tooltip="提交作业"
+    >
       <template #icon>
         <SendOutlined />
       </template>
     </a-float-button>
     
-    <a-float-button @click="handleSettings" :tooltip="'设置'">
+    <!-- 设置 -->
+    <a-float-button 
+      @click="handleSettings" 
+      tooltip="设置"
+    >
       <template #icon>
         <SettingOutlined />
       </template>
@@ -548,6 +572,7 @@ import { ref, computed, onMounted } from 'vue';
 import {
   ThunderboltOutlined,
   PlayCircleOutlined,
+  RocketOutlined,
   SendOutlined,
   SettingOutlined,
   BulbOutlined,
@@ -691,6 +716,11 @@ const handleOpenChange = (open) => {
 const handleAutoAnswer = () => {
   drawerVisible.value = true;
   activeTab.value = 'answer';
+};
+
+const handleAutoCourse = () => {
+  drawerVisible.value = true;
+  activeTab.value = 'course';
 };
 
 const handleSubmit = async () => {
