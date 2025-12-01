@@ -38,8 +38,49 @@ services:
   #     timeout: 5s
   #     retries: 5
 
+  # 后端API服务
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: lazy-sheep-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # 数据库配置（连接到postgres容器）
+      DATABASE_URL: postgresql+asyncpg://lazy_user:lazy_password@postgres:5432/lazy_sheep
+      # Redis配置（使用本地Redis）
+      REDIS_URL: redis://host.docker.internal:6379/0
+      # API配置
+      ENVIRONMENT: development
+      LOG_LEVEL: INFO
+      # 开发模式（启用热重载）
+      RELOAD: "true"
+    volumes:
+      # 挂载代码（开发时修改代码自动重载）
+      - .:/app
+      # 持久化数据目录
+      - backend-data:/app/data
+      # 排除不需要同步的目录（提升性能）
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/.git
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # 开发模式使用host网络（可选，方便调试）
+    # network_mode: host
+
 volumes:
   postgres-data:
+  backend-data:
   # redis-data:
 
 networks:

@@ -2,7 +2,36 @@
 
 ## 🚀 快速开始
 
-### 1. 启动Docker服务（推荐）
+### 方式A：完全使用Docker（推荐）⭐
+
+**一键启动所有服务（PostgreSQL + 后端API）：**
+
+```bash
+docker-dev.bat start
+```
+
+服务地址：
+- 后端API: http://localhost:8000
+- API文档: http://localhost:8000/docs
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379 (本地)
+
+```bash
+# 查看日志
+docker-dev.bat logs
+
+# 停止服务
+docker-dev.bat stop
+
+# 重启服务
+docker-dev.bat restart
+```
+
+---
+
+### 方式B：本地运行后端
+
+### 1. 启动Docker服务（仅数据库）
 
 ```bash
 # 启动PostgreSQL + Redis
