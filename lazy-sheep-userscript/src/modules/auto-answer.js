@@ -91,16 +91,23 @@ class AutoAnswer {
         const {
             useQueue = true,
             batchSize = 10,
-            delay = DELAY_CONFIG.ANSWER_FILL
+            delay = DELAY_CONFIG.ANSWER_FILL,
+            onProgress = null
         } = options;
 
         if (useQueue) {
             // 使用队列控制并发
+            let index = 0;
             for (const question of questions) {
                 if (!this.running || this.paused) break;
 
+                const currentIndex = index++;
                 await RequestQueue.add(async () => {
-                    await this._answerSingleQuestion(question, options);
+                    await this._answerSingleQuestion(question, {
+                        ...options,
+                        index: currentIndex,
+                        total: questions.length
+                    });
                 });
 
                 await sleep(delay);
@@ -129,8 +136,20 @@ class AutoAnswer {
      */
     async _answerSingleQuestion(question, options) {
         const { element, id, content, type } = question;
+        const { onProgress, index, total } = options;
 
         try {
+            // 通知开始答题
+            if (onProgress) {
+                onProgress({
+                    type: 'start',
+                    current: index + 1,
+                    total: total,
+                    questionId: id,
+                    questionContent: content?.substring(0, 50)
+                });
+            }
+
             logger.debug(`[AutoAnswer] 开始答题: ${id}`);
 
             // 滚动到当前题目
@@ -177,6 +196,24 @@ class AutoAnswer {
                     status: 'skipped',
                     reason: '未找到答案'
                 });
+                
+                // 通知跳过
+                if (onProgress) {
+                    onProgress({
+                        type: 'skip',
+                        current: index + 1,
+                        total: total,
+                        questionId: id,
+                        reason: '未找到答案',
+                        progress: {
+                            answered: this.progress.answered,
+                            success: this.progress.success,
+                            failed: this.progress.failed,
+                            skipped: this.progress.skipped
+                        }
+                    });
+                }
+                
                 return;
             }
 
@@ -198,6 +235,23 @@ class AutoAnswer {
                 });
 
                 logger.info(`[AutoAnswer] ✓ 答题成功 (${this.progress.answered}/${this.progress.total})`);
+                
+                // 通知答题成功
+                if (onProgress) {
+                    onProgress({
+                        type: 'success',
+                        current: index + 1,
+                        total: total,
+                        questionId: id,
+                        answer: answer,
+                        progress: {
+                            answered: this.progress.answered,
+                            success: this.progress.success,
+                            failed: this.progress.failed,
+                            skipped: this.progress.skipped
+                        }
+                    });
+                }
                 
                 if (warning) {
                     logger.warn(`[AutoAnswer] ${warning}`);

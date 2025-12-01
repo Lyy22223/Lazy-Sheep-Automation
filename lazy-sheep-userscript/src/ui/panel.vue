@@ -96,6 +96,22 @@
 
           <!-- 状态卡片 -->
           <a-card title="答题状态" size="small">
+            <!-- 实时进度 -->
+            <div v-if="isAnswering && realtimeProgress.current > 0" style="margin-bottom: 16px; padding: 12px; background: #f0f5ff; border-radius: 4px; border-left: 3px solid #1890ff;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 13px; font-weight: 500; color: #1890ff;">
+                  🎯 正在答题: {{ realtimeProgress.current }} / {{ realtimeProgress.total }}
+                </span>
+                <a-tag color="processing">进行中</a-tag>
+              </div>
+              <div v-if="realtimeProgress.currentQuestionId" style="font-size: 12px; color: #666; margin-bottom: 4px;">
+                <span style="font-weight: 500;">当前题目:</span> {{ realtimeProgress.currentQuestionId.substring(0, 8) }}...
+              </div>
+              <div v-if="realtimeProgress.currentContent" style="font-size: 12px; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ realtimeProgress.currentContent }}
+              </div>
+            </div>
+
             <a-row :gutter="16">
               <a-col :span="8">
                 <a-statistic title="总题数" :value="progress.total" />
@@ -122,6 +138,28 @@
               :status="progressStatus"
               style="margin-top: 16px"
             />
+            
+            <!-- 详细统计 -->
+            <a-row :gutter="8" style="margin-top: 12px;">
+              <a-col :span="8">
+                <div style="text-align: center; font-size: 12px;">
+                  <div style="color: #52c41a; font-weight: 500;">✓ {{ progress.success }}</div>
+                  <div style="color: #999;">成功</div>
+                </div>
+              </a-col>
+              <a-col :span="8">
+                <div style="text-align: center; font-size: 12px;">
+                  <div style="color: #f5222d; font-weight: 500;">✗ {{ progress.failed }}</div>
+                  <div style="color: #999;">失败</div>
+                </div>
+              </a-col>
+              <a-col :span="8">
+                <div style="text-align: center; font-size: 12px;">
+                  <div style="color: #faad14; font-weight: 500;">⊝ {{ progress.skipped }}</div>
+                  <div style="color: #999;">跳过</div>
+                </div>
+              </a-col>
+            </a-row>
           </a-card>
 
           <!-- 答题选项 -->
@@ -541,6 +579,7 @@ import NetworkInterceptor from '../network/interceptor.js';
 import Config from '../core/config.js';
 import RequestQueue from '../network/request-queue.js';
 import { logger } from '../core/utils.js';
+import { throttle } from '../core/debounce.js';
 
 // 状态
 const drawerVisible = ref(false);
@@ -567,6 +606,14 @@ const progress = ref({
   success: 0,
   failed: 0,
   skipped: 0
+});
+
+// 实时进度（答题中）
+const realtimeProgress = ref({
+  current: 0,
+  total: 0,
+  currentQuestionId: null,
+  currentContent: null
 });
 
 // 答题选项
@@ -819,27 +866,66 @@ const startCorrection = async () => {
   }
 };
 
+// 进度更新回调（节流优化，避免频繁更新UI）
+const handleProgressUpdate = throttle((progressData) => {
+  const { type, current, total, questionId, questionContent, answer, reason, progress: progressStats } = progressData;
+  
+  // 更新实时进度
+  realtimeProgress.value.current = current;
+  realtimeProgress.value.total = total;
+  realtimeProgress.value.currentQuestionId = questionId;
+  realtimeProgress.value.currentContent = questionContent;
+  
+  // 更新统计数据
+  if (progressStats) {
+    progress.value.answered = progressStats.answered;
+    progress.value.success = progressStats.success;
+    progress.value.failed = progressStats.failed;
+    progress.value.skipped = progressStats.skipped;
+  }
+  
+  // 根据类型显示不同消息
+  if (type === 'success') {
+    logger.debug(`[Panel] ✓ 题目 ${questionId.substring(0, 8)}... 答题成功: ${answer}`);
+  } else if (type === 'skip') {
+    logger.debug(`[Panel] ⊝ 题目 ${questionId.substring(0, 8)}... 跳过: ${reason}`);
+  }
+}, 150); // 150ms节流，平衡性能和实时性
+
 const startAutoAnswer = async () => {
   try {
     isAnswering.value = true;
+    
+    // 重置实时进度
+    realtimeProgress.value = {
+      current: 0,
+      total: 0,
+      currentQuestionId: null,
+      currentContent: null
+    };
+    
     message.loading('开始自动答题...', 0);
     
     // 设置并发数
     RequestQueue.setConcurrencyLimit(settings.value.concurrency);
     
-    // 开始答题
+    // 开始答题（传递进度回调）
     const answerResult = await AutoAnswer.start({
       useAI: answerOptions.value.mode !== 'api',
       skipAnswered: answerOptions.value.skipAnswered,
       useQueue: true,
-      delay: settings.value.delay
+      delay: settings.value.delay,
+      onProgress: handleProgressUpdate  // 传递节流后的回调
     });
     
     message.destroy();
     message.success(`答题完成！成功: ${answerResult.progress.success}题`);
     
-    // 更新进度
+    // 更新最终进度
     progress.value = answerResult.progress;
+    
+    // 清空实时进度
+    realtimeProgress.value.current = 0;
     
     // 自动提交
     if (answerOptions.value.autoSubmit) {
