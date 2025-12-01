@@ -216,9 +216,8 @@
 如有问题或建议，欢迎通过以下方式反馈：
 
 - 🐛 [GitHub Issues](https://github.com/Lyy22223/Lazy-Sheep-Automation/issues) - Bug报告和功能请求
-- 💬 [GitHub Discussions](https://github.com/Lyy22223/Lazy-Sheep-Automation/discussions) - 讨论和问答  
-- 📧 Email: support@example.com
-- 💬 QQ群: 待更新
+- 💬 [GitHub Discussions](https://github.com/Lyy22223/Lazy-Sheep-Automation/discussions) - 讨论和问答
+- 📧 Email: linyy2223@qq.com
 
 ---
 

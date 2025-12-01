@@ -541,8 +541,8 @@ docker-compose up -d
 
 遇到部署问题？
 
-- 📧 Email: support@example.com
-- 💬 QQ群: 待更新
+- 🐛 [GitHub Issues](https://github.com/Lyy22223/Lazy-Sheep-Automation/issues)
+- 📧 Email: linyy2223@qq.com
 
 ---
 

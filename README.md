@@ -1,6 +1,9 @@
-# 懒羊羊自动化平台 🐑
-
-> 在线学习平台自动化助手 | 支持自动答题、自动刷课、智能纠错
+<div align="center">
+  <img src="logo.png" alt="Lazy Sheep Logo" width="200"/>
+  
+  # 懒羊羊自动化平台
+  
+  > 在线学习平台自动化助手 | 支持自动答题、自动刷课、智能纠错
 
 [![GitHub release](https://img.shields.io/github/v/release/Lyy22223/Lazy-Sheep-Automation)](https://github.com/Lyy22223/Lazy-Sheep-Automation/releases)
 [![License](https://img.shields.io/github/license/Lyy22223/Lazy-Sheep-Automation)](LICENSE)
@@ -9,6 +12,10 @@
 [![Vue](https://img.shields.io/badge/Vue-3.x-brightgreen.svg)](https://vuejs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
 [![CI](https://github.com/Lyy22223/Lazy-Sheep-Automation/workflows/CI/badge.svg)](https://github.com/Lyy22223/Lazy-Sheep-Automation/actions)
+
+</div>
+
+---
 
 ## 📖 项目简介
 

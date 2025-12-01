@@ -1,12 +1,19 @@
-# 🐑 懒羊羊自动化平台
-
-> 在线学习平台自动化助手 | 支持自动答题、自动刷课、智能纠错 | 目前对传智播客（CZBK）支持最完善
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Lyy22223/Lazy-Sheep-Automation/main/logo.png" alt="Lazy Sheep Logo" width="200"/>
+  
+  # 懒羊羊自动化平台
+  
+  > 在线学习平台自动化助手 | 支持自动答题、自动刷课、智能纠错
+  > 
+  > 目前对传智播客（CZBK）支持最完善
 
 [![GitHub release](https://img.shields.io/github/v/release/Lyy22223/Lazy-Sheep-Automation)](https://github.com/Lyy22223/Lazy-Sheep-Automation/releases)
 [![License](https://img.shields.io/github/license/Lyy22223/Lazy-Sheep-Automation)](https://github.com/Lyy22223/Lazy-Sheep-Automation/blob/main/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/Lyy22223/Lazy-Sheep-Automation)](https://github.com/Lyy22223/Lazy-Sheep-Automation/stargazers)
 [![Tampermonkey](https://img.shields.io/badge/Tampermonkey-v4.0%2B-brightgreen.svg)](https://www.tampermonkey.net/)
 [![Greasy Fork](https://img.shields.io/badge/Greasy%20Fork-Install-orange.svg)](https://greasyfork.org/)
+
+</div>
 
 ---
 
@@ -326,8 +333,7 @@
 
 - 🐛 [GitHub Issues](https://github.com/Lyy22223/Lazy-Sheep-Automation/issues) - Bug报告和功能请求
 - 💬 [GitHub Discussions](https://github.com/Lyy22223/Lazy-Sheep-Automation/discussions) - 讨论和问答
-- 📧 Email: support@example.com
-- 💬 QQ群: 待更新
+- 📧 Email: linyy2223@qq.com
 
 ---
 
