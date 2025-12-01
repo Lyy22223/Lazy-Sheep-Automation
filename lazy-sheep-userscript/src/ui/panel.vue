@@ -490,7 +490,6 @@
               <DownloadOutlined />
             </a-button>
             <a-button v-if="isLogExpanded" size="small" @click.stop="clearLogs" title="清空日志">清空</a-button>
-            <a-button size="small" @click.stop="showLogs = false" title="关闭日志">×</a-button>
           </a-space>
         </div>
         
@@ -525,13 +524,6 @@
           {{ logs.length === 0 ? '暂无日志' : '无匹配日志' }}
         </div>
       </div>
-    </div>
-    
-    <!-- 日志快捷按钮 -->
-    <div v-if="!showLogs" class="log-float-btn" @click="toggleLogs">
-      <div class="log-float-icon">📝</div>
-      <div v-if="logs.length > 0" class="log-float-badge">{{ logs.length }}</div>
-      <div v-if="logStats.error > 0" class="log-float-error">!</div>
     </div>
   </a-drawer>
 
@@ -580,11 +572,11 @@ import { throttle } from '../core/debounce.js';
 
 // 状态
 const drawerVisible = ref(false);
-const showLogs = ref(false);
+const showLogs = ref(true); // 默认显示日志面板
 const logs = ref([]);
 const logContainer = ref(null);
 const logFilter = ref('all');
-const isLogExpanded = ref(false);
+const isLogExpanded = ref(false); // 默认折叠
 const logHeight = ref(180);
 const activeTab = ref('answer');
 const isAnswering = ref(false);
@@ -1555,76 +1547,6 @@ onMounted(() => {
   color: #bfbfbf;
   padding: 40px 20px;
   font-size: 12px;
-}
-
-/* 浮动日志按钮 */
-.log-float-btn {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  width: 44px;
-  height: 44px;
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
-  border-radius: 50%;
-  box-shadow: 0 2px 12px rgba(24, 144, 255, 0.4);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 10;
-}
-
-.log-float-btn:hover {
-  transform: scale(1.1) translateY(-2px);
-  box-shadow: 0 4px 20px rgba(24, 144, 255, 0.5);
-}
-
-.log-float-btn:active {
-  transform: scale(0.95);
-}
-
-.log-float-icon {
-  font-size: 20px;
-  filter: grayscale(1) brightness(2);
-}
-
-.log-float-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: #52c41a;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 10px;
-  min-width: 18px;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.log-float-error {
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  background: #ff4d4f;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  animation: pulse-error 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse-error {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
 }
 
 /* 滚动条样式 - 白色主题 */
