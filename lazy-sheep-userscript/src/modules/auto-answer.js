@@ -165,12 +165,7 @@ class AutoAnswer {
 
             // 优先使用云端API
             try {
-                const response = await APIClient.search(
-                    id, 
-                    content, 
-                    type, 
-                    question.options || []
-                );
+                const response = await APIClient.search(id, content, type);
                 if (response && response.answer) {
                     answer = response.answer;
                     logger.debug(`[AutoAnswer] 云端查询成功: ${answer}`);

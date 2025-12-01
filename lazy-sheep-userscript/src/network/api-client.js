@@ -30,9 +30,9 @@ class APIClient {
         const url = `${this.baseUrl}${API_ENDPOINTS.SEARCH}`;
 
         const data = {
+            questionId: questionId || 'unknown',  // search API需要此字段
             questionContent: questionText,
             type: questionType,
-            options: options,
             platform: 'czbk'
         };
 
@@ -62,9 +62,9 @@ class APIClient {
 
         const data = {
             questions: questions.map(q => ({
+                questionId: q.id || 'unknown',  // batch search也需要
                 questionContent: q.text,
-                type: q.type || '0',
-                options: q.options || []
+                type: q.type || '0'
             })),
             platform: 'czbk'
         };

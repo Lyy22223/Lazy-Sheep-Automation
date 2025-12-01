@@ -1,4 +1,4 @@
-﻿"""
+"""
 搜索API路由
 """
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api", tags=["search"])
 
 class SearchRequest(BaseModel):
     """搜索请求"""
-    questionId: str
+    questionId: str | None = None  # 可选，优先使用
     questionContent: str
     type: str
     platform: str = "czbk"
@@ -31,13 +31,14 @@ async def search(
 ):
     """搜索单个题目答案"""
     try:
-        logger.info(f"搜索题目: {request.questionId}")
+        logger.info(f"搜索题目: {request.questionId or '无ID'}")
         
         result = await SearchService.search_question(
             content=request.questionContent,
             question_type=request.type,
             platform=request.platform,
-            session=session
+            session=session,
+            question_id=request.questionId  # 传递questionId
         )
         
         if result:
@@ -79,7 +80,8 @@ async def batch_search(
                 content=q.get("questionContent", ""),
                 question_type=q.get("type", "0"),
                 platform=request.platform,
-                session=session
+                session=session,
+                question_id=q.get("questionId")  # 传递questionId
             )
             
             if result:

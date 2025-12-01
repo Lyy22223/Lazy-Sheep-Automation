@@ -95,7 +95,7 @@ export default class CzbkExtractor {
             // 2. 只有2个radio
             // 3. 选项文本是"正确/错误"或"是/否"
             const hasRadioGroup = questionItem.querySelector('.el-radio-group');
-            const radioLabels = Array.from(questionItem.querySelectorAll('label.el-radio, .el-radio__label')).map(l => l.textContent.trim());
+            const radioLabels = Array.from(questionItem.querySelectorAll('label.el-radio, .el-radio__label, .el-radio__input + span')).map(l => l.textContent.trim());
             
             if (hasRadioGroup || radios.length === 2) {
                 // 检查是否为典型的判断题选项
@@ -265,28 +265,29 @@ export default class CzbkExtractor {
                 const hasCheckbox = box.querySelector('input[type="checkbox"]');
                 const hasText = box.querySelector('input[type="text"]:not([readonly])');
                 const hasTextarea = box.querySelector('textarea');
-                const hasRadioGroup = box.querySelector('.el-radio-group');
                 
-                if (hasRadio && hasRadioGroup) {
-                    // 判断题（有 radio 和 el-radio-group）
+                if (hasRadio || hasCheckbox || hasText || hasTextarea) {
                     questions.push(box);
-                    judgeCount++;
-                } else if (hasRadio) {
-                    // 单选题（只有 radio）
-                    questions.push(box);
-                    radioCount++;
-                } else if (hasCheckbox) {
-                    // 多选题
-                    questions.push(box);
-                    checkboxCount++;
-                } else if (hasText) {
-                    // 填空题
-                    questions.push(box);
-                    fillCount++;
-                } else if (hasTextarea) {
-                    // 简答题
-                    questions.push(box);
-                    essayCount++;
+                    
+                    // 使用extractQuestionType精确判断题型
+                    const type = this.extractQuestionType(box);
+                    switch(type) {
+                        case QUESTION_TYPES.DANXUAN:
+                            radioCount++;
+                            break;
+                        case QUESTION_TYPES.DUOXUAN:
+                            checkboxCount++;
+                            break;
+                        case QUESTION_TYPES.PANDUAN:
+                            judgeCount++;
+                            break;
+                        case QUESTION_TYPES.TIANKONG:
+                            fillCount++;
+                            break;
+                        case QUESTION_TYPES.JIANDA:
+                            essayCount++;
+                            break;
+                    }
                 }
             });
             

@@ -17,14 +17,34 @@ class SearchService:
         content: str,
         question_type: str,
         platform: str,
-        session: AsyncSession
+        session: AsyncSession,
+        question_id: str | None = None
     ) -> dict | None:
         """搜索题目答案"""
         try:
-            # 1. 计算content hash
+            # 1. 优先通过questionId精确查询（最快）
+            if question_id:
+                stmt = select(Question).where(
+                    Question.question_id == question_id,
+                    Question.platform == platform
+                )
+                result = await session.execute(stmt)
+                question = result.scalar_one_or_none()
+                
+                if question:
+                    logger.info(f"ID精确匹配: {question.question_id}")
+                    return {
+                        "answer": question.answer,
+                        "answerText": question.answer_text,
+                        "confidence": question.confidence,
+                        "source": question.source,
+                        "questionId": question.question_id
+                    }
+            
+            # 2. 计算content hash
             content_hash = hashlib.md5(content.encode()).hexdigest()
             
-            # 2. 精确匹配（通过hash）
+            # 3. 精确匹配（通过hash）
             stmt = select(Question).where(
                 Question.content_hash == content_hash,
                 Question.platform == platform
@@ -33,7 +53,7 @@ class SearchService:
             question = result.scalar_one_or_none()
             
             if question:
-                logger.info(f"精确匹配: {question.question_id}")
+                logger.info(f"Hash精确匹配: {question.question_id}")
                 return {
                     "answer": question.answer,
                     "answerText": question.answer_text,
