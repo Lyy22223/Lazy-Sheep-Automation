@@ -1,7 +1,7 @@
 {
-    "name": "czbk-auto-answer-refactor",
-    "version": "2.0.0-alpha.3",
-    "description": "懒羊羊自动化平台 - 多平台自动答题系统",
+    "name": "lazy-sheep-automation-platform",
+    "version": "2.0.0",
+    "description": "懒羊羊自动化平台 - 在线学习平台自动化助手",
     "main": "src/main.js",
     "scripts": {
         "dev": "webpack --config config/webpack.config.js --mode development --watch",

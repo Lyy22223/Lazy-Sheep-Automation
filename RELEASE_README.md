@@ -55,7 +55,7 @@
 
 **安装方式**
 
-1. 下载脚本文件 `czbk-answer.user.js`
+1. 下载脚本文件 `lazy-sheep-auto-answer.user.js`
 2. 打开 Tampermonkey 管理面板
 3. 点击「➕ 新建脚本」
 4. 粘贴脚本代码并保存（Ctrl+S）

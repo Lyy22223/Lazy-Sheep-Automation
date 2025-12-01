@@ -71,7 +71,7 @@ npm test
 ### 使用方式
 
 1. 安装 Tampermonkey 浏览器扩展
-2. 导入 `dist/czbk-answer.user.js` 脚本
+2. 导入 `dist/lazy-sheep-auto-answer.user.js` 脚本
 3. 访问支持的平台网站即可使用
 
 ## 核心特性

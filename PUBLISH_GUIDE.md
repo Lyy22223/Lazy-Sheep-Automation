@@ -83,17 +83,17 @@ npm run build
 ```
 
 构建完成后，打包文件位于：
-- `dist/czbk-answer.user.js` - 主脚本文件
+- `dist/lazy-sheep-auto-answer.user.js` - 主脚本文件
 
 ### 3. 验证打包文件
 
 检查文件：
 ```bash
 # Windows
-type dist\czbk-answer.user.js | more
+type dist\lazy-sheep-auto-answer.user.js | more
 
 # 检查文件大小
-dir dist\czbk-answer.user.js
+dir dist\lazy-sheep-auto-answer.user.js
 ```
 
 确认：
@@ -122,7 +122,7 @@ dir dist\czbk-answer.user.js
 - **描述（英文）**: Online learning platform automation assistant. Features: auto answer, auto course, smart correction. Cloud database + AI powered! Currently best support for CZBK, expanding to more platforms.
 
 #### 代码
-- 粘贴 `dist/czbk-answer.user.js` 的完整内容
+- 粘贴 `dist/lazy-sheep-auto-answer.user.js` 的完整内容
 
 #### 附加信息
 - **版本号**: 2.0.0
