@@ -2,6 +2,7 @@
  * 懒羊羊自动化平台 - 配置管理器
  * @author 懒羊羊
  * @description 负责加载、保存和管理所有配置项
+ * @version 2.0.0
  */
 
 class Config {
