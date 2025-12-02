@@ -6,6 +6,8 @@
 // @author       Lazy Sheep Team
 // @homepage     https://github.com/Lyy22223/Lazy-Sheep-Automation
 // @supportURL   https://github.com/Lyy22223/Lazy-Sheep-Automation/issues
+// @updateURL    https://github.com/Lyy22223/Lazy-Sheep-Automation/raw/main/lazy-sheep-userscript/dist/lazy-sheep-auto-answer.user.js
+// @downloadURL  https://github.com/Lyy22223/Lazy-Sheep-Automation/raw/main/lazy-sheep-userscript/dist/lazy-sheep-auto-answer.user.js
 // @match        https://stu.ityxb.com/*
 // @match        https://*.itcast.cn/*
 // @icon         data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiI+PHBhdGggZD0iTTE2IDJjMiAwIDQgMS4xIDUuNiAzQzIzIDEwLjYgMjQgMTIuOCAyNCAxNWMwIDUuNS00IDEwLTggMTBzLTgtNC41LTgtMTBjMC0yLjIgMS00LjQgMi40LTkuOUM4IDMuMSAxMCAyIDE2IDJ6Ii8+PHBhdGggZD0iTTE2IDEwYzIgMCA0IDIgNCA0cy0yIDQtNCA0LTQtMi00LTQgMi00IDQtNHoiIGZpbGw9IiNmZmYiLz48L3N2Zz4=
