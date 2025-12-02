@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         懒羊羊自动化平台
 // @namespace    https://github.com/Lyy22223/Lazy-Sheep-Automation
-// @version      2.0.0
+// @version      2.0.2
 // @description  在线学习平台自动化助手，支持自动答题、自动刷课、智能纠错。目前对传智播客支持最完善，持续扩展更多平台
 // @author       Lazy Sheep Team
 // @homepage     https://github.com/Lyy22223/Lazy-Sheep-Automation
+// @homepageURL  https://github.com/Lyy22223/Lazy-Sheep-Automation
 // @supportURL   https://github.com/Lyy22223/Lazy-Sheep-Automation/issues
 // @updateURL    https://github.com/Lyy22223/Lazy-Sheep-Automation/raw/main/lazy-sheep-userscript/dist/lazy-sheep-auto-answer.user.js
 // @downloadURL  https://github.com/Lyy22223/Lazy-Sheep-Automation/raw/main/lazy-sheep-userscript/dist/lazy-sheep-auto-answer.user.js
