@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: lazy-sheep-userscript/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: lazy-sheep-userscript
+        run: npm ci
+      
+      - name: Build userscript
+        working-directory: lazy-sheep-userscript
+        run: npm run build
+      
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: 'v${{ steps.get_version.outputs.VERSION }}'
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            lazy-sheep-userscript/dist/*.user.js
+            lazy-sheep-userscript/dist/*.LICENSE.txt
+          body: |
+            ## 🎉 懒羊羊自动化平台 v${{ steps.get_version.outputs.VERSION }}
+            
+            ### 📦 安装方式
+            
+            **Tampermonkey用户**：
+            1. 点击下方 `lazy-sheep-auto-answer.user.js` 文件
+            2. Tampermonkey会自动识别并安装
+            
+            **ScriptCat用户**：
+            1. 点击下方 `lazy-sheep-auto-answer.user.js` 文件
+            2. ScriptCat会自动识别并安装
+            
+            ### ✨ 主要功能
+            
+            - 🎯 自动答题（单选、多选、判断、填空、简答）
+            - 🤖 AI智能解答（DeepSeek V3/R1）
+            - 📚 云端题库搜索
+            - 🔄 智能纠错与答案上传
+            - 🚀 自动刷课（视频播放、倍速、自动跳转）
+            
+            ### 🔑 免费使用
+            
+            脚本已内置免费API密钥，安装即可使用！
+            
+            - 每日配额：100,000 次
+            - 每月配额：3,000,000 次
+            
+            ### 🐛 问题反馈
+            
+            - [GitHub Issues](https://github.com/Lyy22223/Lazy-Sheep-Automation/issues)
+            
+            ### 🙏 感谢使用
+            
+            如果觉得好用，请给个⭐Star支持一下！
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
