@@ -39,11 +39,11 @@ jobs:
       - name: Commit and push if changed
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: 🤖 Auto build: Update userscript [skip ci]
+          commit_message: '🤖 Auto build: Update userscript [skip ci]'
           file_pattern: 'lazy-sheep-userscript/dist/*.user.js lazy-sheep-userscript/dist/*.LICENSE.txt'
-          commit_user_name: github-actions[bot]
-          commit_user_email: github-actions[bot]@users.noreply.github.com
-          commit_author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+          commit_user_name: 'github-actions[bot]'
+          commit_user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_author: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
           skip_dirty_check: false
           skip_fetch: false
           skip_checkout: false
